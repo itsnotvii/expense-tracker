@@ -15,34 +15,51 @@ function App() {
       return
     }
 
-    const newExpense = {
-      id: Date.now(),
-      category,
-      amount: parseFloat(amount),
-      description, 
-      date,
-      is_recurring: isRecurring,
-      recurring_frequency: recurringFrequency,
-      created_at: new Date().toISOString()
-    }
+    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category,
+        amount:parseFloat(amount),
+        description,
+        date,
+        is_recurring: isRecurring,
+        recurring_frequency: recurringFrequency
+      })
+    })
 
-    setExpenses([newExpense, ...expenses])
-    setCategory('')
-    setAmount('')
-    setDescription('')
-    setDate('')
-    setIsRecurring(false)
+    .then(res => res.json())
+    .then(data => {
+      setExpenses([data, ...expenses])
+      setCategory('')
+      setAmount('')
+      setDescription('')
+      setDate('')
+      setIsRecurring(false)
+    })
+    .catch(err => console.error('Error adding expense:', err))
   }
 
   const deleteExpense = (id) => {
-    setExpenses(expenses.filter(e => e.id !== id))
+    fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, {
+      method: 'DELETE'
+    })
+    .then(() => setExpenses(expenses.filter(e => e.id !== id)))
+    .catch(err => console.error('Error deleting:', err))
   }
 
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0)
   const byCategory = {}
   expenses.forEach(e => {
-    byCategory[e.category] = (byCategory[e.category] || 0) + <e className="amount"></e>
+    byCategory[e.category] = (byCategory[e.category] || 0) + e.amount
   })
+
+  useEffect(() => {
+  fetch(`${import.meta.env.VITE_API_URL}/api/expenses`)
+    .then(res => res.json())
+    .then(data => setExpenses(data))
+    .catch(err => console.error('Error fetching expenses:', err))
+  }, [])
 
   
 
@@ -57,7 +74,7 @@ function App() {
           <p className="text-3xl font-bold mt-2">${totalSpent.toFixed(2)}</p>
         </div>
         <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <p className="text0gray-400 text-sm">Transactions</p>
+          <p className="text-gray-400 text-sm">Transactions</p>
           <p className="text-3xl font-bold mt-2">{expenses.length}</p>
         </div>
         <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
@@ -122,10 +139,10 @@ function App() {
           Add Expense
         </button>
       </div>
-      
+
       {/* Expenses List */}
       <div>
-        <h2 className="text-xl font-semibold mg-4">Recent Expenses</h2>
+        <h2 className="text-xl font-semibold mb-4">Recent Expenses</h2>
         <div className="flex flex-col gap-2">
           {expenses.map(e => (
             <div key={e.id} className="bg-gray-900 rounded-lg p-4 border border-gray-800 flex justify-between items-center">
