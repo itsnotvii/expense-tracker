@@ -96,164 +96,173 @@ function App() {
   
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <h1 className="text-4xl font-bold mb-8">Expenses Tracker</h1>
-
-      <div className="flex gap-2 mb-8">
-        {['all', 'today', 'week', 'month', 'year'].map(period => (
-          <button
-            key={period}
-            onClick={() => setTimePeriod(period)}
-            className={`px-4 py-2 rounded font-semibold transition-colors ${
-              timePeriod === period
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-            }`}
-          >
-            {period.charAt(0).toUpperCase() + period.slice(1)}
-          </button>
-        ))}
+    <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Header */}
+      <div className="bg-white pt-12 pb-6 px-6 border-b border-gray-200">
+        <h1 className="text-4xl font-bold text-black">Expenses</h1>
+        <p className="text-gray-500 text-sm mt-1">Track your spending</p>
       </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <p className="text-gray-400 text-sm">Total Spent</p>
-          <p className="text-3xl font-bold mt-2">${parseFloat(totalSpent).toFixed(2)}</p>
-        </div>
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <p className="text-gray-400 text-sm">Transactions</p>
-          <p className="text-3xl font-bold mt-2">{expenses.length}</p>
-        </div>
-        <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-          <p className="text-gray-400 text-sm">Average</p>
-          <p className="text-3xl font-bold mt-2">${parseFloat(totalSpent / (expenses.length || 1)).toFixed(2)}</p>
-        </div>
-      </div>
-
-      {/* Add Expense Form */}
-      <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Add Expense</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <select
-            className="bg-gray-800 rounded p-3 text-white placeholder-gray-500"
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-          >
-            <option value="">Select Category</option>
-            <option value="Food">Food</option>
-            <option value="Rent">Rent</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Transport">Transport</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Health">Health</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Other">Other</option>
-          </select>
-          <input 
-            className="bg-gray-800 rounded p-3 text-white placeholder-gray-500"
-            placeholder="Amount"
-            type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
-          />
-          <input 
-            className="bg-gray-800 rounded p-3 text-white placholder-gray-500"
-            placeholder="Description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
-          <input
-            className="bg-gray-800 rounded p-3 text-white"
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-          />
-          <label className="flex items-center gap-2">
-            <input 
-              type="checkbox"
-              checked={isRecurring}
-              onChange={e => setIsRecurring(e.target.checked)}
-            />
-            <span>Recurring?</span>
-          </label>
-          {isRecurring && (
-            <select 
-              className="bg-gray-800 rounded p-3 text-white"
-              value={recurringFrequency}
-              onChange={e => setRecurringFrequency(e.target.value)}
+  
+      <div className="px-6 py-8">
+        {/* Time Period Tabs */}
+        <div className="flex gap-2 mb-8 overflow-x-auto">
+          {['all', 'today', 'week', 'month', 'year'].map(period => (
+            <button
+              key={period}
+              onClick={() => setTimePeriod(period)}
+              className={`ios-tab px-4 py-2 whitespace-nowrap font-medium ${
+                timePeriod === period
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              <option>weekly</option>
-              <option>monthly</option>
-              <option>yearly</option>
-            </select>
-          )}
-        </div>
-        <button 
-          className="w-full bg-blue-600 hover:bg-blue-500 rounded p-3 font-semibold mt-4 transition-colors"
-          onClick={addExpense}
-        >
-          Add Expense
-        </button>
-      </div>
-
-      {/* Spending by Category Chart */ }
-      {Object.keys(byCategory).length > 0 && (
-        <div className="bg-gray-900 rounded-lg p-6 border border-gray-800 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Spending By Category</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie 
-                data={Object.entries(byCategory).map(([name, value]) => ({
-                  name, 
-                  value: parseFloat(value)
-                }))}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {Object.keys(byCategory).map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={['#3b8246', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][index % 6]} />  
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `$${parseFloat(value).toFixed(2)}`} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Expenses List */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Recent Expenses</h2>
-        <div className="flex flex-col gap-2">
-          {filteredExpenses.map(e => (
-            <div key={e.id} className="bg-gray-900 rounded-lg p-4 border border-gray-800 flex justify-between items-center">
-              <div className="flex-1">
-                <p className="font-semibold">{e.category}</p>
-                <p className="text-gray-400 text-sm">{e.description || 'No description'}</p>
-                <p className="text-gray-500 text-xs mt-1">{e.date}</p>
-              </div>
-              <div className="text-right">
-              <p className="text-lg font-bold">${parseFloat(e.amount).toFixed(2)}</p>
-                {e.is_recurring && <p className="text-gray-400 text-xs">{e.recurring_frequency}</p>}
-              </div>
-              <button 
-                onClick={() => deleteExpense(e.id)}
-                className="text-red-400 hover:text-red-300 ml-4 font-semibold"
-              >
-                Delete
-              </button>
-            </div>
+              {period.charAt(0).toUpperCase() + period.slice(1)}
+            </button>
           ))}
+        </div>
+  
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-4 mb-8">
+          <div className="ios-card p-6">
+            <p className="text-gray-500 text-sm font-medium">Total Spent</p>
+            <p className="text-5xl font-bold text-black mt-2">${parseFloat(totalSpent).toFixed(2)}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="ios-card p-4">
+              <p className="text-gray-500 text-xs font-medium">Transactions</p>
+              <p className="text-3xl font-bold text-black mt-2">{filteredExpenses.length}</p>
+            </div>
+            <div className="ios-card p-4">
+              <p className="text-gray-500 text-xs font-medium">Average</p>
+              <p className="text-3xl font-bold text-black mt-2">${parseFloat(totalSpent / (filteredExpenses.length || 1)).toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+  
+        {/* Chart */}
+        {Object.keys(byCategory).length > 0 && (
+          <div className="ios-card p-6 mb-8">
+            <h2 className="text-lg font-bold text-black mb-4">By Category</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={Object.entries(byCategory).map(([name, value]) => ({
+                    name,
+                    value: parseFloat(value)
+                  }))}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
+                  outerRadius={80}
+                  fill="#0a84ff"
+                  dataKey="value"
+                >
+                  {Object.keys(byCategory).map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={['#0a84ff', '#ff3b30', '#34c759', '#ff9500', '#af52de', '#ff2d55'][index % 6]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `$${parseFloat(value).toFixed(2)}`} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+  
+        {/* Add Expense Form */}
+        <div className="ios-card p-6 mb-8">
+          <h2 className="text-lg font-bold text-black mb-4">Add Expense</h2>
+          <div className="space-y-3">
+            <select
+              className="ios-input w-full px-4 py-3 text-black"
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+            >
+              <option value="">Select Category</option>
+              <option value="Food">🍔 Food</option>
+              <option value="Rent">🏠 Rent</option>
+              <option value="Utilities">💡 Utilities</option>
+              <option value="Transport">🚗 Transport</option>
+              <option value="Entertainment">🎬 Entertainment</option>
+              <option value="Health">💊 Health</option>
+              <option value="Shopping">🛍️ Shopping</option>
+              <option value="Other">📌 Other</option>
+            </select>
+            <input
+              className="ios-input w-full px-4 py-3 text-black"
+              placeholder="Amount"
+              type="number"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
+            <input
+              className="ios-input w-full px-4 py-3 text-black"
+              placeholder="Description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <input
+              className="ios-input w-full px-4 py-3 text-black"
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={e => setIsRecurring(e.target.checked)}
+                className="w-5 h-5"
+              />
+              <span className="text-black font-medium">Recurring?</span>
+            </label>
+            {isRecurring && (
+              <select
+                className="ios-input w-full px-4 py-3 text-black"
+                value={recurringFrequency}
+                onChange={e => setRecurringFrequency(e.target.value)}
+              >
+                <option>weekly</option>
+                <option>monthly</option>
+                <option>yearly</option>
+              </select>
+            )}
+            <button
+              className="ios-button w-full bg-blue-500 hover:bg-blue-600 text-white py-3 font-semibold mt-4"
+              onClick={addExpense}
+            >
+              Add Expense
+            </button>
+          </div>
+        </div>
+  
+        {/* Expenses List */}
+        <div>
+          <h2 className="text-lg font-bold text-black mb-4">Recent</h2>
+          <div className="space-y-2">
+            {filteredExpenses.map(e => (
+              <div key={e.id} className="ios-card p-4 flex justify-between items-center hover:bg-gray-50 transition">
+                <div className="flex-1">
+                  <p className="font-semibold text-black">{e.category}</p>
+                  <p className="text-gray-500 text-sm">{e.description || 'No description'}</p>
+                  <p className="text-gray-400 text-xs mt-1">{e.date}</p>
+                </div>
+                <div className="text-right mr-4">
+                  <p className="text-lg font-bold text-black">${parseFloat(e.amount).toFixed(2)}</p>
+                  {e.is_recurring && <p className="text-blue-500 text-xs font-medium">{e.recurring_frequency}</p>}
+                </div>
+                <button
+                  onClick={() => deleteExpense(e.id)}
+                  className="text-red-500 hover:text-red-600 font-semibold"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  )  
+  )
 }
 
 export default App
