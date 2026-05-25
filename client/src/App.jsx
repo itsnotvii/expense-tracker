@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 function App() {
   const [expenses, setExpenses] = useState([])
@@ -97,7 +97,6 @@ function App() {
         value: parseFloat(assetValue)
       })
     })
-
       .then(res => res.json())
       .then(data => {
         setAssets([data, ...assets])
@@ -115,28 +114,39 @@ function App() {
       .catch(err => console.error('Error deleting asset:', err))
   }
 
-  const filteredExpenses = getFilteredExpenses()
-  const totalSpent = Array.isArray(filteredExpenses) ? filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0) : 0
+  const filteredExpenses = Array.isArray(expenses) ? getFilteredExpenses() : []
+  const totalSpent = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0)
+
   const byCategory = {}
-  expenses.forEach(e => {
+  filteredExpenses.forEach(e => {
     byCategory[e.category] = (byCategory[e.category] || 0) + parseFloat(e.amount)
   })
-  const totalAssets = assets.reduce((sum, a) => sum + parseFloat(a.value), 0)
-  const netWorth = totalAssets - totalSpent
 
+  // Fixed totalAssets calculation with NaN handling
+  const totalAssets = Array.isArray(assets) ? assets.reduce((sum, a) => {
+    const value = parseFloat(a.value);
+    return sum + (isNaN(value) ? 0 : value);
+  }, 0) : 0
+
+const netWorth = totalAssets - totalSpent
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/expenses`)
       .then(res => res.json())
-      .then(data => setExpenses(data))
-      .catch(err => console.error('Error fetching expenses:', err))
+      .then(data => setExpenses(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Error fetching expenses:', err)
+        setExpenses([])
+      })
 
     fetch(`${import.meta.env.VITE_API_URL}/api/assets`)
       .then(res => res.json())
-      .then(data => setAssets(data))
-      .catch(err => console.error('Error fetching assets:', err))
+      .then(data => setAssets(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Error fetching assets:', err)
+        setAssets([])
+      })
   }, [])
-
 
   return (
     <div className={tw('min-h-screen bg-gray-50 pb-12', 'min-h-screen bg-gray-950 pb-12')}>
@@ -185,7 +195,7 @@ function App() {
         <div className="grid grid-cols-1 gap-4 mb-8">
           <div className={tw('bg-white p-6 rounded-xl shadow-sm', 'bg-gray-900 p-6 rounded-xl shadow-sm')}>
             <p className={tw('text-gray-500 text-sm font-medium', 'text-gray-400 text-sm font-medium')}>Total Spent</p>
-            <p className={tw('text-5xl font-bold text-black mt-2', 'text-5xl font-bold text-white mt-2')}>${parseFloat(totalSpent).toFixed(2)}</p>
+            <p className={tw('text-5xl font-bold text-black mt-2', 'text-5xl font-bold text-white mt-2')}>${totalSpent.toFixed(2)}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className={tw('bg-white p-4 rounded-xl shadow-sm', 'bg-gray-900 p-4 rounded-xl shadow-sm')}>
@@ -194,7 +204,7 @@ function App() {
             </div>
             <div className={tw('bg-white p-4 rounded-xl shadow-sm', 'bg-gray-900 p-4 rounded-xl shadow-sm')}>
               <p className={tw('text-gray-500 text-xs font-medium', 'text-gray-400 text-xs font-medium')}>Average</p>
-              <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>${parseFloat(totalSpent / (filteredExpenses.length || 1)).toFixed(2)}</p>
+              <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>${(totalSpent / (filteredExpenses.length || 1)).toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -205,15 +215,15 @@ function App() {
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div>
               <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Total Assets</p>
-              <p className={tw('text-2xl font-bold text-green-600 mt-1', 'text-2xl font-bold text-green-400 mt-1')}>${parseFloat(totalAssets).toFixed(2)}</p>
+              <p className={tw('text-2xl font-bold text-green-600 mt-1', 'text-2xl font-bold text-green-400 mt-1')}>${totalAssets.toFixed(2)}</p>
             </div>
             <div>
               <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Total Spent</p>
-              <p className={tw('text-2xl font-bold text-red-600 mt-1', 'text-2xl font-bold text-red-400 mt-1')}>${parseFloat(totalSpent).toFixed(2)}</p>
+              <p className={tw('text-2xl font-bold text-red-600 mt-1', 'text-2xl font-bold text-red-400 mt-1')}>${totalSpent.toFixed(2)}</p>
             </div>
             <div>
               <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Net Worth</p>
-              <p className={tw('text-2xl font-bold text-blue-600 mt-1', 'text-2xl font-bold text-blue-400 mt-1')}>${parseFloat(netWorth).toFixed(2)}</p>
+              <p className={tw('text-2xl font-bold text-blue-600 mt-1', 'text-2xl font-bold text-blue-400 mt-1')}>${netWorth.toFixed(2)}</p>
             </div>
           </div>
 
@@ -241,7 +251,7 @@ function App() {
               </select>
               <div className="flex gap-2">
                 <input
-                  className={tw('flex-1 px-3 py-2 rounded border border-gray-300 text-black text-sm', 'flex-1 px-3 py-2 rounded border-gray-700 text-white text-sm bg-gray-700')}
+                  className={tw('flex-1 px-3 py-2 rounded border border-gray-300 text-black text-sm', 'flex-1 px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
                   placeholder="Value"
                   type="number"
                   value={assetValue}
@@ -259,23 +269,29 @@ function App() {
 
           {/* Assets List */}
           <div className="space-y-2">
-            {assets.map(a => (
-              <div key={a.id} className={tw('flex justify-between items-center p-3 rounded-lg bg-gray-50', 'flex justify-between items-center p-3 rounded-lg bg-gray-800')}>
-                <div>
-                  <p className={tw('font-semibold text-black', 'font-semibold text-white')}>{a.name}</p>
-                  <p className={tw('text-gray-500 text-xs', 'text-gray-400 text-xs')}>{a.type}</p>
+            {Array.isArray(assets) && assets.length > 0 ? (
+              assets.map(a => (
+                <div key={a.id} className={tw('flex justify-between items-center p-3 rounded-lg bg-gray-50', 'flex justify-between items-center p-3 rounded-lg bg-gray-800')}>
+                  <div>
+                    <p className={tw('font-semibold text-black', 'font-semibold text-white')}>{a.name}</p>
+                    <p className={tw('text-gray-500 text-xs', 'text-gray-400 text-xs')}>{a.type}</p>
+                  </div>
+                  <div className="flex gap-4 items-center">
+                    <p className={tw('font-bold text-black', 'font-bold text-white')}>${parseFloat(a.value).toFixed(2)}</p>
+                    <button
+                      onClick={() => deleteAsset(a.id)}
+                      className={tw('text-red-500 hover:text-red-600', 'text-red-400 hover:text-red-300')}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-4 items-center">
-                  <p className={tw('font-bold text-black', 'font-bold text-white')}>${parseFloat(a.value).toFixed(2)}</p>
-                  <button
-                    onClick={() => deleteAsset(a.id)}
-                    className={tw('text-red-500 hover:text-red-600', 'text-red-400 hover:text-red-300')}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className={tw('text-gray-500 text-center py-4', 'text-gray-400 text-center py-4')}>
+                No assets yet. Add one above!
+              </p>
+            )}
           </div>
         </div>
 

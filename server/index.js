@@ -6,8 +6,6 @@ require('dotenv').config()
 const app = express()
 
 app.use(cors())
-
-
 app.use(express.json())
 
 app.get('/api/expenses', async (req, res) => {
@@ -18,12 +16,11 @@ app.get('/api/expenses', async (req, res) => {
     )
     res.json(result.rows)
   } catch (error) {
-    console.error(error)
+    console.error('Error fetching expenses:', error)
     res.status(500).json({ error: 'Database error' })
   }
 })
 
-// POST new expense
 app.post('/api/expenses', async (req, res) => {
   const { category, amount, description, date, is_recurring, recurring_frequency } = req.body
 
@@ -40,12 +37,11 @@ app.post('/api/expenses', async (req, res) => {
     )
     res.status(201).json(result.rows[0])
   } catch (error) {
-    console.error(error)
+    console.error('Error adding expense:', error)
     res.status(500).json({ error: 'Database error' })
   }
 })
 
-// DELETE expense
 app.delete('/api/expenses/:id', async (req, res) => {
   try {
     await pool.query(
@@ -54,13 +50,9 @@ app.delete('/api/expenses/:id', async (req, res) => {
     )
     res.json({ message: 'Expense deleted' })
   } catch (error) {
-    console.error(error)
+    console.error('Error deleting expense:', error)
     res.status(500).json({ error: 'Database error' })
   }
-})
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' })
 })
 
 app.get('/api/assets', async (req, res) => {
@@ -71,28 +63,28 @@ app.get('/api/assets', async (req, res) => {
     )
     res.json(result.rows)
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Datebase error' })
+    console.error('Error fetching assets:', error)
+    res.status(500).json({ error: 'Database error' })
   }
 })
 
 app.post('/api/assets', async (req, res) => {
   const { name, type, value } = req.body
 
-  if (!name || !type || !value) {
+  if (!name || !value) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
   try {
     const result = await pool.query(
       `INSERT INTO assets (user_id, name, type, value)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *`
-      ['demo-user', name, type, parseFloat(value)]
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      ['demo-user', name, type || 'Other', parseFloat(value)]
     )
     res.status(201).json(result.rows[0])
   } catch (error) {
-    console.error(error)
+    console.error('Error adding asset:', error)
     res.status(500).json({ error: 'Database error' })
   }
 })
@@ -105,9 +97,13 @@ app.delete('/api/assets/:id', async (req, res) => {
     )
     res.json({ message: 'Asset deleted' })
   } catch (error) {
-    console.error(error)
+    console.error('Error deleting asset:', error)
     res.status(500).json({ error: 'Database error' })
   }
+})
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' })
 })
 
 const PORT = process.env.PORT || 3001
