@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
+const addAsset = () => {
+  console.log('1. addAsset called')
+  console.log('2. assetName:', assetName)
+  console.log('3. assetValue:', assetValue)
+  if (!assetName || !assetValue) {
+    console.log('4. FAILED validation')
+    alert('Fill in required fields')
+    return
+  }
+  console.log('5. passed validation, fetching...')
+}
+
 function App() {
   const [expenses, setExpenses] = useState([])
   const [category, setCategory] = useState('')
@@ -99,7 +111,7 @@ function App() {
     })
       .then(res => res.json())
       .then(data => {
-        setAssets([data, ...assets])
+        setAssets([{ ...data, value: parseFloat(data.value) }, ...assets])
         setAssetName('')
         setAssetValue('')
       })
@@ -230,7 +242,7 @@ const netWorth = totalAssets - totalSpent
           {/* Add Asset Form */}
           <div className={tw('bg-gray-50 p-4 rounded-lg mb-4', 'bg-gray-800 p-4 rounded-lg mb-4')}>
             <h3 className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Add Asset</h3>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-2">
               <input
                 className={tw('px-3 py-2 rounded border border-gray-300 text-black text-sm', 'px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
                 placeholder="Asset name"
@@ -249,21 +261,19 @@ const netWorth = totalAssets - totalSpent
                 <option>Real Estate</option>
                 <option>Other</option>
               </select>
-              <div className="flex gap-2">
-                <input
-                  className={tw('flex-1 px-3 py-2 rounded border border-gray-300 text-black text-sm', 'flex-1 px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
-                  placeholder="Value"
-                  type="number"
-                  value={assetValue}
-                  onChange={e => setAssetValue(e.target.value)}
-                />
-                <button
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded font-semibold text-sm"
-                  onClick={addAsset}
-                >
-                  Add
-                </button>
-              </div>
+              <input
+                className={tw('px-3 py-2 rounded border border-gray-300 text-black text-sm', 'px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
+                placeholder="Value"
+                type="number"
+                value={assetValue}
+                onChange={e => setAssetValue(e.target.value)}
+              />
+              <button
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded font-semibold text-sm"
+                onClick={() => addAsset()}
+              >
+                Add Asset
+              </button>
             </div>
           </div>
 
@@ -334,14 +344,14 @@ const netWorth = totalAssets - totalSpent
               onChange={e => setCategory(e.target.value)}
             >
               <option value="">Select Category</option>
-              <option value="Food">🍔 Food</option>
-              <option value="Rent">🏠 Rent</option>
-              <option value="Utilities">💡 Utilities</option>
-              <option value="Transport">🚗 Transport</option>
-              <option value="Entertainment">🎬 Entertainment</option>
-              <option value="Health">💊 Health</option>
-              <option value="Shopping">🛍️ Shopping</option>
-              <option value="Other">📌 Other</option>
+              <option value="Food">Food</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Transport">Transport</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Health">Health</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Other">Other</option>
             </select>
             <input
               className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}

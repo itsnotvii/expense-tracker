@@ -69,7 +69,9 @@ app.get('/api/assets', async (req, res) => {
 })
 
 app.post('/api/assets', async (req, res) => {
+  console.log('req.body:', req.body)
   const { name, type, value } = req.body
+  console.log('Parsed:', { name, type, value })
 
   if (!name || !value) {
     return res.status(400).json({ error: 'Missing required fields' })
