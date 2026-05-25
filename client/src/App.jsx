@@ -171,40 +171,46 @@ function App() {
 
       {/* ── Header ── */}
       <div className={tw('bg-white border-b border-gray-200 px-6 pt-10 pb-4', 'bg-gray-900 border-b border-gray-800 px-6 pt-10 pb-4')}>
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className={tw('text-2xl font-bold text-black', 'text-2xl font-bold text-white')}>Dashboard</h1>
-            <p className={tw('text-gray-400 text-xs mt-0.5', 'text-gray-500 text-xs mt-0.5')}>Your financial overview</p>
-            <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>${netWorth.toFixed(2)}</p>
+            <p className={tw('text-gray-400 text-xs', 'text-gray-500 text-xs')}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋</p>
+            <h1 className={tw('text-2xl font-bold text-black mt-0.5', 'text-2xl font-bold text-white mt-0.5')}>Dashboard</h1>
+            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>You've spent <span className={tw('text-black font-semibold', 'text-white font-semibold')}>${(() => { const w = new Date(); w.setDate(w.getDate() - 7); return expenses.filter(e => new Date(e.date) >= w).reduce((s, e) => s + parseFloat(e.amount), 0).toFixed(2) })()}</span> this week</p>
           </div>
-          <button onClick={() => setDarkMode(!darkMode)}
-            className={tw(
-              'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
-              'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
-            )}>
-            <span className={tw(
-              'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
-              'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
-            )}>
-              {darkMode ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-              ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="5"/>
-                  <line x1="12" y1="1" x2="12" y2="3"/>
-                  <line x1="12" y1="21" x2="12" y2="23"/>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                  <line x1="1" y1="12" x2="3" y2="12"/>
-                  <line x1="21" y1="12" x2="23" y2="12"/>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                </svg>
-              )}
-            </span>
-          </button>
+          <div className="flex flex-col items-end gap-3">
+            <button onClick={() => setDarkMode(!darkMode)}
+              className={tw(
+                'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
+                'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
+              )}>
+              <span className={tw(
+                'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
+                'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
+              )}>
+                {darkMode ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  </svg>
+                )}
+              </span>
+            </button>
+            <div className="text-right">
+              <p className={tw('text-gray-400 text-xs mb-1', 'text-gray-500 text-xs mb-1')}>Net Worth</p>
+              <span className={tw('inline-block text-2xl font-bold text-black border-2 border-black rounded-2xl px-4 py-1', 'inline-block text-2xl font-bold text-white border-2 border-white rounded-2xl px-4 py-1')}>${netWorth.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
