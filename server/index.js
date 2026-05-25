@@ -108,6 +108,53 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
 
+app.get('/api/income', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM income WHERE user_id = $1 ORDER BY date DESC',
+      ['demo-user']
+    )
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching income:', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.post('/api/income', async (req, res) => {
+  const { source, amount, description, date, is_recurring, recurring_frequency } = req.body
+
+  if (!source || !amount || !date) {
+    return res.status(400).json({ error: 'Missing required fields!' })
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO income (user_id, source, amount, description, date, is_recurring, recurring_frequency)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *`,
+      ['demo-user', source, parseFloat(amount), description, date, is_recurring || false, recurring_frequency]
+    )
+    res.status(201).json(result.rows[0])
+  } catch (error) {
+    console.error('Error adding income:', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.delete('/api/income/:id', async (req, res) => {
+  try {
+    await pool.query(
+      'DELETE FROM income WHERE id = $1 AND user_id = $2',
+      [req.params.id, 'demo-user']
+    )
+    res.json({ message: 'Income deleted' })
+  } catch (error) {
+    console.error('Error deleting income:', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

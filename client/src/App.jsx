@@ -1,432 +1,467 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
-const addAsset = () => {
-  console.log('1. addAsset called')
-  console.log('2. assetName:', assetName)
-  console.log('3. assetValue:', assetValue)
-  if (!assetName || !assetValue) {
-    console.log('4. FAILED validation')
-    alert('Fill in required fields')
-    return
-  }
-  console.log('5. passed validation, fetching...')
-}
-
 function App() {
   const [expenses, setExpenses] = useState([])
+  const [income, setIncome] = useState([])
+  const [assets, setAssets] = useState([])
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalTab, setModalTab] = useState('expense')
+
+  // Expense form
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
-  const [date, setDate] = useState('')
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState('monthly')
-  const [timePeriod, setTimePeriod] = useState('all')
-  const [darkMode, setDarkMode] = useState(false)
-  const [assets, setAssets] = useState([])
+
+  // Date Defaults
+  const today = new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(today)
+  const [incomeDate, setIncomeDate] = useState(today)
+
+  // Success state
+  const [success, setSuccess] = useState(null)
+
+  // Income form
+  const [incomeSource, setIncomeSource] = useState('')
+  const [incomeAmount, setIncomeAmount] = useState('')
+  const [incomeDescription, setIncomeDescription] = useState('')
+  const [incomeIsRecurring, setIncomeIsRecurring] = useState(false)
+  const [incomeRecurringFrequency, setIncomeRecurringFrequency] = useState('monthly')
+
+  // Asset form
   const [assetName, setAssetName] = useState('')
   const [assetType, setAssetType] = useState('Cash')
   const [assetValue, setAssetValue] = useState('')
 
+  const [timePeriod, setTimePeriod] = useState('month')
+  const [darkMode, setDarkMode] = useState(false)
+
   const tw = (light, dark) => darkMode ? dark : light
 
-  const addExpense = () => {
-    if (!category || !amount || !date) {
-      alert('Fill in required fields')
-      return
-    }
+  // ── Fetch all data ──────────────────────────────────────────
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`)
+      .then(r => r.json()).then(d => setExpenses(Array.isArray(d) ? d : []))
+      .catch(() => setExpenses([]))
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        category,
-        amount: parseFloat(amount),
-        description,
-        date,
-        is_recurring: isRecurring,
-        recurring_frequency: recurringFrequency
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        const newExpense = { ...data, amount: parseFloat(data.amount) }
-        setExpenses([newExpense, ...expenses])
-        setCategory('')
-        setAmount('')
-        setDescription('')
-        setDate('')
-        setIsRecurring(false)
-      })
-      .catch(err => console.error('Error adding expense:', err))
-  }
+    fetch(`${import.meta.env.VITE_API_URL}/api/income`)
+      .then(r => r.json()).then(d => setIncome(Array.isArray(d) ? d : []))
+      .catch(() => setIncome([]))
 
-  const deleteExpense = (id) => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, {
-      method: 'DELETE'
-    })
-      .then(() => setExpenses(expenses.filter(e => e.id !== id)))
-      .catch(err => console.error('Error deleting:', err))
-  }
+    fetch(`${import.meta.env.VITE_API_URL}/api/assets`)
+      .then(r => r.json()).then(d => setAssets(Array.isArray(d) ? d : []))
+      .catch(() => setAssets([]))
+  }, [])
 
-  const getFilteredExpenses = () => {
+  // ── Filtering ───────────────────────────────────────────────
+  const filterByPeriod = (items, dateKey = 'date') => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-
-    return expenses.filter(e => {
-      const expenseDate = new Date(e.date)
-
-      switch(timePeriod) {
-        case 'today':
-          return expenseDate >= today
-        case 'week':
-          const weekAgo = new Date(today)
-          weekAgo.setDate(weekAgo.getDate() - 7)
-          return expenseDate >= weekAgo
-        case 'month':
-          return expenseDate.getMonth() === now.getMonth() &&
-                 expenseDate.getFullYear() === now.getFullYear()
-        case 'year':
-          return expenseDate.getFullYear() === now.getFullYear()
-        default:
-          return true
+    return items.filter(e => {
+      const d = new Date(e[dateKey])
+      switch (timePeriod) {
+        case 'today': return d >= today
+        case 'week': const w = new Date(today); w.setDate(w.getDate() - 7); return d >= w
+        case 'month': return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+        case 'year': return d.getFullYear() === now.getFullYear()
+        default: return true
       }
     })
   }
 
-  const addAsset = () => {
-    if (!assetName || !assetValue) {
-      alert('Fill in required fields')
-      return
-    }
+  const filteredExpenses = filterByPeriod(expenses)
+  const filteredIncome = filterByPeriod(income)
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/assets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: assetName,
-        type: assetType,
-        value: parseFloat(assetValue)
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setAssets([{ ...data, value: parseFloat(data.value) }, ...assets])
-        setAssetName('')
-        setAssetValue('')
-      })
-      .catch(err => console.error('Error adding asset:', err))
+  const totalSpent = filteredExpenses.reduce((s, e) => s + parseFloat(e.amount), 0)
+  const totalIncome = filteredIncome.reduce((s, i) => s + parseFloat(i.amount), 0)
+  const totalAssets = assets.reduce((s, a) => { const v = parseFloat(a.value); return s + (isNaN(v) ? 0 : v) }, 0)
+  const savingsRate = totalIncome > 0 ? ((totalIncome - totalSpent) / totalIncome * 100).toFixed(1) : 0
+  const netWorth = totalAssets - totalSpent
+
+  const showSuccess = (type) => {
+    setSuccess(type)
+    setTimeout(() => setSuccess(null), 2000)
   }
-
-  const deleteAsset = (id) => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/assets/${id}`, {
-      method: 'DELETE'
-    })
-      .then(() => setAssets(assets.filter(a => a.id !== id)))
-      .catch(err => console.error('Error deleting asset:', err))
-  }
-
-  const filteredExpenses = Array.isArray(expenses) ? getFilteredExpenses() : []
-  const totalSpent = filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0)
 
   const byCategory = {}
   filteredExpenses.forEach(e => {
     byCategory[e.category] = (byCategory[e.category] || 0) + parseFloat(e.amount)
   })
 
-  // Fixed totalAssets calculation with NaN handling
-  const totalAssets = Array.isArray(assets) ? assets.reduce((sum, a) => {
-    const value = parseFloat(a.value);
-    return sum + (isNaN(value) ? 0 : value);
-  }, 0) : 0
+  // ── Recent activity (mixed, last 10) ───────────────────────
+  const recentActivity = [
+    ...filteredExpenses.map(e => ({ ...e, _type: 'expense' })),
+    ...filteredIncome.map(i => ({ ...i, _type: 'income' })),
+    ...assets.map(a => ({ ...a, date: a.created_at?.split('T')[0] || '', _type: 'asset' }))
+  ]
+    .filter(i => i.date)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 10)
 
-const netWorth = totalAssets - totalSpent
+  // ── CRUD ────────────────────────────────────────────────────
+  const addExpense = () => {
+    if (!category || !amount || !date) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
+    }).then(r => r.json()).then(d => {
+      setExpenses([{ ...d, amount: parseFloat(d.amount) }, ...expenses])
+      setCategory(''); setAmount(''); setDescription(''); setDate(''); setIsRecurring(false)
+      setModalOpen(false)
+      showSuccess('expense')
+    }).catch(err => console.error(err))
+  }
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`)
-      .then(res => res.json())
-      .then(data => setExpenses(Array.isArray(data) ? data : []))
-      .catch(err => {
-        console.error('Error fetching expenses:', err)
-        setExpenses([])
-      })
+  const addIncome = () => {
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/assets`)
-      .then(res => res.json())
-      .then(data => setAssets(Array.isArray(data) ? data : []))
-      .catch(err => {
-        console.error('Error fetching assets:', err)
-        setAssets([])
-      })
-  }, [])
+    console.log('addIncome called', { incomeSource, incomeAmount, incomeDate })
+
+    if (!incomeSource || !incomeAmount || !incomeDate) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/income`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
+    }).then(r => r.json()).then(d => {
+      setIncome([{ ...d, amount: parseFloat(d.amount) }, ...income])
+      setIncomeSource(''); setIncomeAmount(''); setIncomeDescription(''); setIncomeDate(''); setIncomeIsRecurring(false)
+      setModalOpen(false)
+      showSuccess('income')
+    }).catch(err => console.error(err))
+  }
+
+  const addAsset = () => {
+    if (!assetName || !assetValue) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/assets`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: assetName, type: assetType, value: parseFloat(assetValue) })
+    }).then(r => r.json()).then(d => {
+      setAssets([{ ...d, value: parseFloat(d.value) }, ...assets])
+      setAssetName(''); setAssetValue('')
+      setModalOpen(false)
+      showSuccess('asset')
+    }).catch(err => console.error(err))
+  }
+
+  const deleteExpense = id => fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, { method: 'DELETE' })
+    .then(() => setExpenses(expenses.filter(e => e.id !== id)))
+
+  const deleteIncome = id => fetch(`${import.meta.env.VITE_API_URL}/api/income/${id}`, { method: 'DELETE' })
+    .then(() => setIncome(income.filter(i => i.id !== id)))
+
+  const deleteAsset = id => fetch(`${import.meta.env.VITE_API_URL}/api/assets/${id}`, { method: 'DELETE' })
+    .then(() => setAssets(assets.filter(a => a.id !== id)))
+
+  const handleDelete = item => {
+    if (item._type === 'expense') deleteExpense(item.id)
+    else if (item._type === 'income') deleteIncome(item.id)
+    else deleteAsset(item.id)
+  }
+
+  // ── Input class helper ──────────────────────────────────────
+  const inputCls = tw(
+    'w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none text-sm',
+    'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none text-sm'
+  )
 
   return (
-    <div className={tw('min-h-screen bg-gray-50 pb-12', 'min-h-screen bg-gray-950 pb-12')}>
-      {/* Header */}
-      <div className={tw('bg-white pt-12 pb-6 px-6 border-b border-gray-200', 'bg-gray-900 pt-12 pb-6 px-6 border-b border-gray-800')}>
+    <div className={tw('min-h-screen bg-gray-100', 'min-h-screen bg-gray-950')}>
+
+      {/* ── Header ── */}
+      <div className={tw('bg-white border-b border-gray-200 px-6 pt-10 pb-4', 'bg-gray-900 border-b border-gray-800 px-6 pt-10 pb-4')}>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className={tw('text-4xl font-bold text-black', 'text-4xl font-bold text-white')}>Expenses</h1>
-            <p className={tw('text-gray-500 text-sm mt-1', 'text-gray-400 text-sm mt-1')}>Track your spending</p>
+            <h1 className={tw('text-2xl font-bold text-black', 'text-2xl font-bold text-white')}>Dashboard</h1>
+            <p className={tw('text-gray-400 text-xs mt-0.5', 'text-gray-500 text-xs mt-0.5')}>Your financial overview</p>
+            <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>${netWorth.toFixed(2)}</p>
           </div>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={tw('px-4 py-2 rounded-full font-semibold transition bg-gray-200 text-gray-700 hover:bg-gray-300', 'px-4 py-2 rounded-full font-semibold transition bg-gray-800 text-yellow-400 hover:bg-gray-700')}
-          >
-            {darkMode ? '☀️' : '🌙'}
+          <button onClick={() => setDarkMode(!darkMode)}
+            className={tw(
+              'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
+              'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
+            )}>
+            <span className={tw(
+              'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
+              'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
+            )}>
+              {darkMode ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+              )}
+            </span>
           </button>
         </div>
       </div>
 
-      <div className={tw('px-6 py-8', 'px-6 py-8')}>
-        {/* Time Period Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto">
-          {['all', 'today', 'week', 'month', 'year'].map(period => (
-            <button
-              key={period}
-              onClick={() => setTimePeriod(period)}
+      <div className="px-6 py-6 pb-24">
+
+        {/* ── Time Period Tabs ── */}
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {['all', 'today', 'week', 'month', 'year'].map(p => (
+            <button key={p} onClick={() => setTimePeriod(p)}
               className={tw(
-                `px-4 py-2 whitespace-nowrap font-medium rounded-lg transition ${
-                  timePeriod === period
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`,
-                `px-4 py-2 whitespace-nowrap font-medium rounded-lg transition ${
-                  timePeriod === period
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`
-              )}
-            >
-              {period.charAt(0).toUpperCase() + period.slice(1)}
+                `px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${timePeriod === p ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`,
+                `px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition ${timePeriod === p ? 'bg-white text-black' : 'bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700'}`
+              )}>
+              {p.charAt(0).toUpperCase() + p.slice(1)}
             </button>
           ))}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-4 mb-8">
-          <div className={tw('bg-white p-6 rounded-xl shadow-sm', 'bg-gray-900 p-6 rounded-xl shadow-sm')}>
-            <p className={tw('text-gray-500 text-sm font-medium', 'text-gray-400 text-sm font-medium')}>Total Spent</p>
-            <p className={tw('text-5xl font-bold text-black mt-2', 'text-5xl font-bold text-white mt-2')}>${totalSpent.toFixed(2)}</p>
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Spent</p>
+            <p className={tw('text-2xl font-bold text-black', 'text-2xl font-bold text-white')}>${totalSpent.toFixed(2)}</p>
+            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{filteredExpenses.length} transactions</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className={tw('bg-white p-4 rounded-xl shadow-sm', 'bg-gray-900 p-4 rounded-xl shadow-sm')}>
-              <p className={tw('text-gray-500 text-xs font-medium', 'text-gray-400 text-xs font-medium')}>Transactions</p>
-              <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>{filteredExpenses.length}</p>
-            </div>
-            <div className={tw('bg-white p-4 rounded-xl shadow-sm', 'bg-gray-900 p-4 rounded-xl shadow-sm')}>
-              <p className={tw('text-gray-500 text-xs font-medium', 'text-gray-400 text-xs font-medium')}>Average</p>
-              <p className={tw('text-3xl font-bold text-black mt-2', 'text-3xl font-bold text-white mt-2')}>${(totalSpent / (filteredExpenses.length || 1)).toFixed(2)}</p>
-            </div>
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Income</p>
+            <p className="text-2xl font-bold text-green-500">${totalIncome.toFixed(2)}</p>
+            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{filteredIncome.length} entries</p>
           </div>
-        </div>
-
-        {/* Net Worth Section */}
-        <div className={tw('bg-white p-6 rounded-xl shadow-sm mb-8', 'bg-gray-900 p-6 rounded-xl shadow-sm mb-8')}>
-          <h2 className={tw('text-lg font-bold text-black mb-4', 'text-lg font-bold text-white mb-4')}>Net Worth</h2>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div>
-              <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Total Assets</p>
-              <p className={tw('text-2xl font-bold text-green-600 mt-1', 'text-2xl font-bold text-green-400 mt-1')}>${totalAssets.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Total Spent</p>
-              <p className={tw('text-2xl font-bold text-red-600 mt-1', 'text-2xl font-bold text-red-400 mt-1')}>${totalSpent.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>Net Worth</p>
-              <p className={tw('text-2xl font-bold text-blue-600 mt-1', 'text-2xl font-bold text-blue-400 mt-1')}>${netWorth.toFixed(2)}</p>
-            </div>
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Savings Rate</p>
+            <p className={`text-2xl font-bold ${parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500'}`}>{savingsRate}%</p>
+            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>of income saved</p>
           </div>
-
-          {/* Add Asset Form */}
-          <div className={tw('bg-gray-50 p-4 rounded-lg mb-4', 'bg-gray-800 p-4 rounded-lg mb-4')}>
-            <h3 className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Add Asset</h3>
-            <div className="flex flex-col gap-2">
-              <input
-                className={tw('px-3 py-2 rounded border border-gray-300 text-black text-sm', 'px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
-                placeholder="Asset name"
-                value={assetName}
-                onChange={e => setAssetName(e.target.value)}
-              />
-              <select
-                className={tw('px-3 py-2 rounded border border-gray-300 text-black text-sm', 'px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
-                value={assetType}
-                onChange={e => setAssetType(e.target.value)}
-              >
-                <option>Cash</option>
-                <option>Stocks</option>
-                <option>Crypto</option>
-                <option>Precious Metals</option>
-                <option>Real Estate</option>
-                <option>Other</option>
-              </select>
-              <input
-                className={tw('px-3 py-2 rounded border border-gray-300 text-black text-sm', 'px-3 py-2 rounded border border-gray-700 text-white text-sm bg-gray-700')}
-                placeholder="Value"
-                type="number"
-                value={assetValue}
-                onChange={e => setAssetValue(e.target.value)}
-              />
-              <button
-                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded font-semibold text-sm"
-                onClick={() => addAsset()}
-              >
-                Add Asset
-              </button>
-            </div>
-          </div>
-
-          {/* Assets List */}
-          <div className="space-y-2">
-            {Array.isArray(assets) && assets.length > 0 ? (
-              assets.map(a => (
-                <div key={a.id} className={tw('flex justify-between items-center p-3 rounded-lg bg-gray-50', 'flex justify-between items-center p-3 rounded-lg bg-gray-800')}>
-                  <div>
-                    <p className={tw('font-semibold text-black', 'font-semibold text-white')}>{a.name}</p>
-                    <p className={tw('text-gray-500 text-xs', 'text-gray-400 text-xs')}>{a.type}</p>
-                  </div>
-                  <div className="flex gap-4 items-center">
-                    <p className={tw('font-bold text-black', 'font-bold text-white')}>${parseFloat(a.value).toFixed(2)}</p>
-                    <button
-                      onClick={() => deleteAsset(a.id)}
-                      className={tw('text-red-500 hover:text-red-600', 'text-red-400 hover:text-red-300')}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className={tw('text-gray-500 text-center py-4', 'text-gray-400 text-center py-4')}>
-                No assets yet. Add one above!
-              </p>
-            )}
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Assets</p>
+            <p className="text-2xl font-bold text-purple-500">${totalAssets.toFixed(2)}</p>
+            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{assets.length} assets</p>
           </div>
         </div>
 
-        {/* Chart */}
+        {/* ── Spending by Category Chart ── */}
         {Object.keys(byCategory).length > 0 && (
-          <div className={tw('bg-white p-6 rounded-xl shadow-sm mb-8', 'bg-gray-900 p-6 rounded-xl shadow-sm mb-8')}>
-            <h2 className={tw('text-lg font-bold text-black mb-4', 'text-lg font-bold text-white mb-4')}>By Category</h2>
-            <ResponsiveContainer width="100%" height={250}>
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
+            <p className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Spending by Category</p>
+            <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie
-                  data={Object.entries(byCategory).map(([name, value]) => ({
-                    name,
-                    value: parseFloat(value)
-                  }))}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: $${value.toFixed(2)}`}
-                  outerRadius={80}
-                  fill="#0a84ff"
-                  dataKey="value"
-                >
-                  {Object.keys(byCategory).map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={['#0a84ff', '#ff3b30', '#34c759', '#ff9500', '#af52de', '#ff2d55'][index % 6]} />
+                <Pie data={Object.entries(byCategory).map(([name, value]) => ({ name, value: parseFloat(value) }))}
+                  cx="50%" cy="50%" labelLine={false}
+                  label={({ name, value }) => `${name}: $${value.toFixed(0)}`}
+                  outerRadius={70} dataKey="value">
+                  {Object.keys(byCategory).map((_, i) => (
+                    <Cell key={i} fill={['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899'][i % 6]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `$${parseFloat(value).toFixed(2)}`} />
+                <Tooltip formatter={v => `$${parseFloat(v).toFixed(2)}`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Add Expense Form */}
-        <div className={tw('bg-white p-6 rounded-xl shadow-sm mb-8', 'bg-gray-900 p-6 rounded-xl shadow-sm mb-8')}>
-          <h2 className={tw('text-lg font-bold text-black mb-4', 'text-lg font-bold text-white mb-4')}>Add Expense</h2>
-          <div className="space-y-3">
-            <select
-              className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-            >
-              <option value="">Select Category</option>
-              <option value="Food">Food</option>
-              <option value="Rent">Rent</option>
-              <option value="Utilities">Utilities</option>
-              <option value="Transport">Transport</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Health">Health</option>
-              <option value="Shopping">Shopping</option>
-              <option value="Other">Other</option>
-            </select>
-            <input
-              className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}
-              placeholder="Amount"
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-            />
-            <input
-              className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}
-              placeholder="Description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-            <input
-              className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-            />
-            <label className={tw('flex items-center gap-3 p-3 rounded-lg bg-gray-50', 'flex items-center gap-3 p-3 rounded-lg bg-gray-800')}>
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                onChange={e => setIsRecurring(e.target.checked)}
-                className="w-5 h-5"
-              />
-              <span className={tw('text-black font-medium', 'text-white font-medium')}>Recurring?</span>
-            </label>
-            {isRecurring && (
-              <select
-                className={tw('w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none', 'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none')}
-                value={recurringFrequency}
-                onChange={e => setRecurringFrequency(e.target.value)}
-              >
-                <option>weekly</option>
-                <option>monthly</option>
-                <option>yearly</option>
-              </select>
-            )}
-            <button
-              className={tw('w-full bg-blue-500 hover:bg-blue-600 text-white py-3 font-semibold mt-4 rounded-lg transition', 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 font-semibold mt-4 rounded-lg transition')}
-              onClick={addExpense}
-            >
-              Add Expense
-            </button>
-          </div>
-        </div>
+        {/* ── Recent Activity ── */}
+        <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+          <p className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Recent Activity</p>
+          {recentActivity.length === 0 ? (
+            <p className={tw('text-gray-400 text-sm text-center py-6', 'text-gray-500 text-sm text-center py-6')}>No activity yet. Tap + to add something.</p>
+          ) : (
+            <div className="space-y-2">
+              {recentActivity.map((item, idx) => {
+                const isExpense = item._type === 'expense'
+                const isIncome = item._type === 'income'
+                const isAsset = item._type === 'asset'
+                const label = isExpense ? item.category : isIncome ? item.source : item.name
+                const sub = isExpense ? (item.description || 'No description') : isIncome ? (item.description || 'No description') : item.type
+                const amountVal = parseFloat(isAsset ? item.value : item.amount)
+                const amountColor = isExpense ? 'text-red-500' : isIncome ? 'text-green-500' : 'text-purple-500'
+                const amountPrefix = isExpense ? '-' : '+'
+                const tag = isExpense ? { label: 'Expense', bg: tw('bg-red-50 text-red-500', 'bg-red-900/30 text-red-400') }
+                  : isIncome ? { label: 'Income', bg: tw('bg-green-50 text-green-600', 'bg-green-900/30 text-green-400') }
+                  : { label: 'Asset', bg: tw('bg-purple-50 text-purple-600', 'bg-purple-900/30 text-purple-400') }
 
-        {/* Expenses List */}
-        <div>
-          <h2 className={tw('text-lg font-bold text-black mb-4', 'text-lg font-bold text-white mb-4')}>Recent</h2>
-          <div className="space-y-2">
-            {filteredExpenses.map(e => (
-              <div key={e.id} className={tw('bg-white p-4 rounded-lg flex justify-between items-center hover:bg-gray-50 transition', 'bg-gray-900 p-4 rounded-lg flex justify-between items-center hover:bg-gray-800 transition')}>
-                <div className="flex-1">
-                  <p className={tw('font-semibold text-black', 'font-semibold text-white')}>{e.category}</p>
-                  <p className={tw('text-gray-500 text-sm', 'text-gray-400 text-sm')}>{e.description || 'No description'}</p>
-                  <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{e.date}</p>
-                </div>
-                <div className="text-right mr-4">
-                  <p className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>${parseFloat(e.amount).toFixed(2)}</p>
-                  {e.is_recurring && <p className="text-blue-500 text-xs font-medium">{e.recurring_frequency}</p>}
-                </div>
-                <button
-                  onClick={() => deleteExpense(e.id)}
-                  className={tw('text-red-500 hover:text-red-600 font-semibold', 'text-red-400 hover:text-red-300 font-semibold')}
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
+                return (
+                  <div key={`${item._type}-${item.id}-${idx}`}
+                    className={tw('flex items-center justify-between p-3 rounded-xl bg-gray-50', 'flex items-center justify-between p-3 rounded-xl bg-gray-800')}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${tag.bg}`}>{tag.label}</span>
+                      <div className="min-w-0">
+                        <p className={tw('text-sm font-semibold text-black truncate', 'text-sm font-semibold text-white truncate')}>{label}</p>
+                        <p className={tw('text-xs text-gray-400 truncate', 'text-xs text-gray-500 truncate')}>{sub} · {item.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 ml-2">
+                      <p className={`text-sm font-bold ${amountColor}`}>{isAsset ? '' : amountPrefix}${amountVal.toFixed(2)}</p>
+                      <button onClick={() => handleDelete(item)}
+                        className={tw('text-gray-300 hover:text-red-500 transition', 'text-gray-600 hover:text-red-400 transition')}>✕</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Success Toast */}
+      {success && (
+        <div className={tw(
+          'fixed bottom-28 left-1/2 -translate-x-1/2 bg-black text-white px-5 py-3 rounded-2xl text-sm font-medium flex items-center gap-2 z-50 transition-all',
+          'fixed bottom-28 left-1/2 -translate-x-1/2 bg-white text-black px-5 py-3 rounded-2xl text-sm font-medium flex items-center gap-2 z-50 transition-all'
+        )}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          {success === 'expense' ? 'Expense added' : success === 'income' ? 'Income added' : 'Asset added'}
+        </div>
+      )}
+
+      {/* ── Floating + Button ── */}
+      <button
+        onClick={() => setModalOpen(true)}
+        className={tw(
+          'fixed bottom-8 right-6 w-16 h-16 bg-black text-white rounded-2xl shadow-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40',
+          'fixed bottom-8 right-6 w-16 h-16 bg-white text-black rounded-2xl shadow-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40'
+        )}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="10" y1="3" x2="10" y2="17"/>
+          <line x1="3" y1="10" x2="17" y2="10"/>
+        </svg>
+      </button>
+
+      {/* ── Modal ── */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+          <div className={tw('bg-white rounded-t-3xl w-full max-w-2xl p-6 pb-10', 'bg-gray-900 rounded-t-3xl w-full max-w-2xl p-6 pb-10')}
+            style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-5">
+              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Add New</h2>
+              <button onClick={() => setModalOpen(false)}
+                className={tw('text-gray-400 hover:text-black text-xl', 'text-gray-500 hover:text-white text-xl')}>✕</button>
+            </div>
+
+            {/* Tabs */}
+            <div className={tw('flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl', 'flex gap-1 mb-6 bg-gray-800 p-1 rounded-xl')}>
+              {['expense', 'income', 'asset'].map(tab => (
+                <button key={tab} onClick={() => setModalTab(tab)}
+                  className={tw(
+                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`,
+                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-gray-700 text-white' : 'text-gray-500'}`
+                  )}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {/* Expense Form */}
+            {modalTab === 'expense' && (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className={tw('text-xs text-gray-400 mb-2', 'text-xs text-gray-500 mb-2')}>Category</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: 'Food', emoji: '🍔' },
+                      { value: 'Rent', emoji: '🏠' },
+                      { value: 'Utilities', emoji: '💡' },
+                      { value: 'Transport', emoji: '🚗' },
+                      { value: 'Entertainment', emoji: '🎬' },
+                      { value: 'Health', emoji: '💊' },
+                      { value: 'Shopping', emoji: '🛍️' },
+                      { value: 'Other', emoji: '📌' },
+                    ].map(c => (
+                      <button
+                        key={c.value}
+                        onClick={() => setCategory(c.value)}
+                        className={tw(
+                          `flex flex-col items-center gap-1 p-2 rounded-xl border transition text-xs font-medium ${category === c.value ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400'}`,
+                          `flex flex-col items-center gap-1 p-2 rounded-xl border transition text-xs font-medium ${category === c.value ? 'border-white bg-white text-black' : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-500'}`
+                        )}
+                      >
+                        <span className="text-xl">{c.emoji}</span>
+                        <span>{c.value}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={tw('flex items-center border border-gray-300 rounded-lg bg-white', 'flex items-center border border-gray-700 rounded-lg bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm font-medium', 'pl-4 text-gray-500 text-sm font-medium')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+                </div>                
+                <input className={inputCls} placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
+                <input className={inputCls} type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <label className={tw('flex items-center gap-3 p-3 rounded-lg bg-gray-50', 'flex items-center gap-3 p-3 rounded-lg bg-gray-800')}>
+                  <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-5 h-5" />
+                  <span className={tw('text-black font-medium text-sm', 'text-white font-medium text-sm')}>Recurring?</span>
+                </label>
+                {isRecurring && (
+                  <select className={inputCls} value={recurringFrequency} onChange={e => setRecurringFrequency(e.target.value)}>
+                    <option>weekly</option><option>monthly</option><option>yearly</option>
+                  </select>
+                )}
+                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold mt-2 transition"
+                  onClick={() => addExpense()}>Add Expense</button>
+              </div>
+            )}
+
+            {/* Income Form */}
+            {modalTab === 'income' && (
+              <div className="flex flex-col gap-3">
+                <input className={inputCls} placeholder="Source (e.g. Salary, Freelance)" value={incomeSource} onChange={e => setIncomeSource(e.target.value)} />
+                <div className={tw('flex items-center border border-gray-300 rounded-lg bg-white', 'flex items-center border border-gray-700 rounded-lg bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm font-medium', 'pl-4 text-gray-500 text-sm font-medium')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={incomeAmount} onChange={e => setIncomeAmount(e.target.value)} />
+                </div>
+                <input className={inputCls} placeholder="Description (optional)" value={incomeDescription} onChange={e => setIncomeDescription(e.target.value)} />
+                <input className={inputCls} type="date" value={incomeDate} onChange={e => setIncomeDate(e.target.value)} />
+                <label className={tw('flex items-center gap-3 p-3 rounded-lg bg-gray-50', 'flex items-center gap-3 p-3 rounded-lg bg-gray-800')}>
+                  <input type="checkbox" checked={incomeIsRecurring} onChange={e => setIncomeIsRecurring(e.target.checked)} className="w-5 h-5" />
+                  <span className={tw('text-black font-medium text-sm', 'text-white font-medium text-sm')}>Recurring?</span>
+                </label>
+                {incomeIsRecurring && (
+                  <select className={inputCls} value={incomeRecurringFrequency} onChange={e => setIncomeRecurringFrequency(e.target.value)}>
+                    <option>weekly</option><option>monthly</option><option>yearly</option>
+                  </select>
+                )}
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold mt-2 transition"
+                  onClick={() => addIncome()}>Add Income</button>
+              </div>
+            )}
+
+            {/* Asset Form */}
+            {modalTab === 'asset' && (
+              <div className="flex flex-col gap-3">
+                <input className={inputCls} placeholder="Asset name" value={assetName} onChange={e => setAssetName(e.target.value)} />
+                <select className={inputCls} value={assetType} onChange={e => setAssetType(e.target.value)}>
+                  <option>Cash</option>
+                  <option>Stocks</option>
+                  <option>Crypto</option>
+                  <option>Precious Metals</option>
+                  <option>Real Estate</option>
+                  <option>Other</option>
+                </select>
+                <div className={tw('flex items-center border border-gray-300 rounded-lg bg-white', 'flex items-center border border-gray-700 rounded-lg bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm font-medium', 'pl-4 text-gray-500 text-sm font-medium')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={assetValue} onChange={e => setAssetValue(e.target.value)} />
+                </div>
+                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-semibold mt-2 transition"
+                  onClick={() => addAsset()}>Add Asset</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
