@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 function App() {
   const [expenses, setExpenses] = useState([])
@@ -80,7 +80,7 @@ function App() {
   const totalIncome = filteredIncome.reduce((s, i) => s + parseFloat(i.amount), 0)
   const totalAssets = assets.reduce((s, a) => { const v = parseFloat(a.value); return s + (isNaN(v) ? 0 : v) }, 0)
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalSpent) / totalIncome * 100).toFixed(1) : 0
-  const netWorth = totalAssets - totalSpent
+  const netWorth = totalAssets + totalIncome - totalSpent
 
   const showSuccess = (type) => {
     setSuccess(type)
@@ -159,6 +159,26 @@ function App() {
     else if (item._type === 'income') deleteIncome(item.id)
     else deleteAsset(item.id)
   }
+
+  const getChartData = () => {
+    const days = 7
+    const result = []
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const dateStr = d.toISOString().split('T')[0]
+      const spent = expenses 
+        .filter(e => e.date === dateStr)
+        .reduce((s, e) => s + parseFloat(e.amount), 0)
+      const earned = income 
+        .filter(i => i.date === dateStr)
+        .reduce((s, i) => s + parseFloat(i.amount), 0)
+      result.push({ label, spent, earned })
+    }
+    return result
+  }
+  const chartData = getChartData()
 
   // ── Input class helper ──────────────────────────────────────
   const inputCls = tw(
@@ -253,25 +273,26 @@ function App() {
           </div>
         </div>
 
-        {/* ── Spending by Category Chart ── */}
-        {Object.keys(byCategory).length > 0 && (
-          <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
-            <p className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Spending by Category</p>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={Object.entries(byCategory).map(([name, value]) => ({ name, value: parseFloat(value) }))}
-                  cx="50%" cy="50%" labelLine={false}
-                  label={({ name, value }) => `${name}: $${value.toFixed(0)}`}
-                  outerRadius={70} dataKey="value">
-                  {Object.keys(byCategory).map((_, i) => (
-                    <Cell key={i} fill={['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899'][i % 6]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={v => `$${parseFloat(v).toFixed(2)}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        {/* Spending and Income Chart */}
+        <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
+          <p className={tw('text-sm font-semibold text-black mb-4', 'text-sm font-semibold text-white mb-4')}>Last 7 Days</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#1f2937': '#f3f4f6'} />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: darkMode ? '#6b7280' : '#9ca3af'}} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: darkMode ? '#6b7280' : "#9ca3af" }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+              <Tooltip
+                formatter={(value, name) => [`$${value.toFixed(2)}`, name === 'spent' ? 'Spent' : 'Income']}
+                contentStyle={{ background: darkMode ? '#111827' : '#fff', border: 'none', borderRadius: '12px', fontSize: '12px' }}
+              />
+              <Legend formatter={v => v === 'spent' ? 'Spent' : 'Income'} />
+              <Line type="monotone" dataKey="spent" stroke="#ef4444" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="earned" stroke="#22c55e" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        
 
         {/* ── Recent Activity ── */}
         <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
