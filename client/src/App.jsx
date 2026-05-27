@@ -6,6 +6,12 @@ function App() {
   const [income, setIncome] = useState([])
   const [assets, setAssets] = useState([])
 
+  // Settings in header
+  const [headerBg, setHeaderBg] = useState({ type: 'solid', value: '' })
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+
+
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
   const [modalTab, setModalTab] = useState('expense')
@@ -185,6 +191,20 @@ function App() {
     'w-full px-4 py-3 rounded-lg border border-gray-300 text-black bg-white focus:border-blue-500 focus:outline-none text-sm',
     'w-full px-4 py-3 rounded-lg border border-gray-700 text-white bg-gray-800 focus:border-blue-500 focus:outline-none text-sm'
   )
+
+  // - Color options for header
+  const solidColors = ['#ffffff', '#000000', '#0f172a', '#1e3a5f', '#14532d', '#3b0764', '#7f1d1d', '#431407']
+  const gradients = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+    'linear-gradient(135deg, #0f0c29, #302b63, #2424e3)',
+    'linear-gradient(135deg, #232526, #414345',
+  ]
+  
 
   return (
     <div className={tw('min-h-screen bg-gray-100', 'min-h-screen bg-gray-950')}>
