@@ -193,7 +193,7 @@ function App() {
   )
 
   // - Color options for header
-  const solidColors = ['#ffffff', '#000000', '#0f172a', '#1e3a5f', '#14532d', '#3b0764', '#7f1d1d', '#431407']
+  const solidColors = ['#ffffff', '#000000', '#0f2a25', '#1e3a5f', '#14532d', '#3b0764', '#7f1d1d', '#431407']
   const gradients = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -204,51 +204,74 @@ function App() {
     'linear-gradient(135deg, #0f0c29, #302b63, #2424e3)',
     'linear-gradient(135deg, #232526, #414345',
   ]
+
+  const headerDark = headerBg.type === 'photo' || 
+    ['#000000','#0f172a','#1e3a5f','#14532d','#3b0764','#7f1d1d','#431407'].includes(headerBg.value) ||
+    headerBg.type === 'gradient'
   
 
   return (
     <div className={tw('min-h-screen bg-gray-100', 'min-h-screen bg-gray-950')}>
 
       {/* ── Header ── */}
-      <div className={tw('bg-white border-b border-gray-200 px-6 pt-10 pb-4', 'bg-gray-900 border-b border-gray-800 px-6 pt-10 pb-4')}>
+      <div className="px-6 pt-10 pb-4 border-b"
+        style={{
+          background: headerBg.type === 'photo' ? `url(${headerBg.value}) center/cover no-repeat` :
+            headerBg.type === 'gradient' ? headerBg.value :
+            headerBg.type === 'solid' && headerBg.value ? headerBg.value :
+            darkMode ? '#111827' : '#ffffff',
+          borderColor: darkMode ? '#1f2937' : '#e5e7eb'
+        }}>
         <div className="flex justify-between items-start">
           <div>
-            <p className={tw('text-gray-400 text-xs', 'text-gray-500 text-xs')}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋</p>
-            <h1 className={tw('text-2xl font-bold text-black mt-0.5', 'text-2xl font-bold text-white mt-0.5')}>Dashboard</h1>
-            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>You've spent <span className={tw('text-black font-semibold', 'text-white font-semibold')}>${(() => { const w = new Date(); w.setDate(w.getDate() - 7); return expenses.filter(e => new Date(e.date) >= w).reduce((s, e) => s + parseFloat(e.amount), 0).toFixed(2) })()}</span> this week</p>
+            <p style={{ color: headerDark ? '#fff' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋</p>
+            <h1 style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="text-2xl font-bold mt-0.5">Dashboard</h1>
+            <p style={{ color: headerDark ? '#fff' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mt-1">You've spent <span style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="font-semibold">${(() => { const w = new Date(); w.setDate(w.getDate() - 7); return expenses.filter(e => new Date(e.date) >= w).reduce((s, e) => s + parseFloat(e.amount), 0).toFixed(2) })()}</span> this week</p>
           </div>
           <div className="flex flex-col items-end gap-3">
-            <button onClick={() => setDarkMode(!darkMode)}
-              className={tw(
-                'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
-                'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
-              )}>
-              <span className={tw(
-                'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
-                'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
-              )}>
-                {darkMode ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                  </svg>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="23"/>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                    <line x1="1" y1="12" x2="3" y2="12"/>
-                    <line x1="21" y1="12" x2="23" y2="12"/>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                  </svg>
-                )}
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setSettingsOpen(true)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition ${headerDark || darkMode ? 'bg-white/20 hover:bg-white/30' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={headerDark || darkMode ? '#fff' : '#666'} strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+              </button>
+              <button onClick={() => setDarkMode(!darkMode)}
+                className={tw(
+                  'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
+                  'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
+                )}>
+                <span className={tw(
+                  'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
+                  'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
+                )}>
+                  {darkMode ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/>
+                      <line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/>
+                      <line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  )}
+                </span>
+              </button>
+            </div>
             <div className="text-right">
-              <p className={tw('text-gray-400 text-xs mb-1', 'text-gray-500 text-xs mb-1')}>Net Worth</p>
-              <span className={tw('inline-block text-2xl font-bold text-black border-2 border-black rounded-2xl px-4 py-1', 'inline-block text-2xl font-bold text-white border-2 border-white rounded-2xl px-4 py-1')}>${netWorth.toFixed(2)}</span>
+              <p style={{ color: headerDark ? '#ffffff99' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mb-1">Net Worth</p>
+              <span style={{ 
+                color: headerDark ? '#fff' : darkMode ? '#fff' : '#000',
+                borderColor: headerDark ? '#fff' : darkMode ? '#fff' : '#000'
+              }} className="inline-block text-2xl font-bold border-2 rounded-2xl px-4 py-1">${netWorth.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -367,6 +390,67 @@ function App() {
             <polyline points="20 6 9 17 4 12"/>
           </svg>
           {success === 'expense' ? 'Expense added' : success === 'income' ? 'Income added' : 'Asset added'}
+        </div>
+      )}
+
+      { /* New Dashboard */ }
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={e => { if (e.target === e.currentTarget) setSettingsOpen(false) }}>
+          <div className={tw('bg-white rounded-t-3xl w-full max-w-2xl p-6 pb-10', 'bg-gray-900 rounded-t-3xl w-full max-w-2xl p-6 pb-10')}
+            style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Customize Header</h2>
+              <button onClick={() => setSettingsOpen(false)}
+                className={tw('text-gray-400 hover:text-black text-xl', 'text-gray-500 hover:text-white text-xl')}>✕</button>
+            </div>
+
+            {/* Solid Colors */}
+            <p className={tw('text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide', 'text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide')}>Solid Colors</p>
+            <div className="flex gap-2 mb-6 flex-wrap">
+              {solidColors.map(color => (
+                <button key={color} onClick={() => setHeaderBg({ type: 'solid', value: color })}
+                  style={{ background: color }}
+                  className={`w-10 h-10 rounded-xl border-2 transition ${headerBg.value === color ? 'border-blue-500 scale-110' : 'border-transparent'}`} />
+              ))}
+            </div>
+
+            {/* Gradients */}
+            <p className={tw('text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide', 'text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide')}>Gradients</p>
+            <div className="flex gap-2 mb-6 flex-wrap">
+              {gradients.map((g, i) => (
+                <button key={i} onClick={() => setHeaderBg({ type: 'gradient', value: g })}
+                  style={{ background: g }}
+                  className={`w-10 h-10 rounded-xl border-2 transition ${headerBg.value === g ? 'border-blue-500 scale-110' : 'border-transparent'}`} />
+              ))}
+            </div>
+
+            {/* Photo Upload */}
+            <p className={tw('text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide', 'text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide')}>Custom Photo</p>
+            <label className={tw('flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer hover:border-gray-400 transition', 'flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-700 cursor-pointer hover:border-gray-500 transition')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={darkMode ? '#9ca3af' : '#6b7280'} strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span className={tw('text-sm text-gray-500', 'text-sm text-gray-400')}>
+                {headerBg.type === 'photo' ? 'Photo set! Click to change' : 'Upload a photo'}
+              </span>
+              <input type="file" accept="image/*" className="hidden" onChange={e => {
+                const file = e.target.files[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = ev => setHeaderBg({ type: 'photo', value: ev.target.result })
+                reader.readAsDataURL(file)
+              }} />
+            </label>
+
+            {/* Reset */}
+            <button onClick={() => setHeaderBg({ type: 'solid', value: '' })}
+              className={tw('mt-4 text-xs text-gray-400 hover:text-gray-600 underline', 'mt-4 text-xs text-gray-500 hover:text-gray-300 underline')}>
+              Reset to default
+            </button>
+          </div>
         </div>
       )}
 
