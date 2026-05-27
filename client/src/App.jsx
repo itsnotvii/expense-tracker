@@ -291,8 +291,9 @@ function App() {
             <p className="text-2xl font-bold text-purple-500">${totalAssets.toFixed(2)}</p>
             <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{assets.length} assets</p>
           </div>
-        </div>
+        </div> 
 
+<<<<<<< HEAD
         {/* Spending and Income Chart */}
         <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
           <p className={tw('text-sm font-semibold text-black mb-4', 'text-sm font-semibold text-white mb-4')}>Last 7 Days</p>
@@ -314,6 +315,39 @@ function App() {
 
         
 
+=======
+        {/* ── Spending by Category Chart ── */}
+        {Object.keys(byCategory).length > 0 && (
+          <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
+            <p className={tw('text-sm font-semibold text-black mb-4', 'text-sm font-semibold text-white mb-4')}>Spending by Category</p>
+            <div className="space-y-3">
+              {Object.entries(byCategory)
+                .sort((a, b) => b[1] - a[1])
+                .map(([name, value], i) => {
+                  const colors = ['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899']
+                  const color = colors[i % colors.length]
+                  const pct = (value / totalSpent * 100).toFixed(0)
+                  return (
+                    <div key={name}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={tw('text-xs font-medium text-gray-600', 'text-xs font-medium text-gray-400')}>{name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={tw('text-xs text-gray-400', 'text-xs text-gray-500')}>{pct}%</span>
+                          <span className={tw('text-xs font-semibold text-black', 'text-xs font-semibold text-white')}>${parseFloat(value).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className={tw('w-full bg-gray-100 rounded-full h-2', 'w-full bg-gray-800 rounded-full h-2')}>
+                        <div className="h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+        
+>>>>>>> b3dc0cc (spending by category chart updated)
         {/* ── Recent Activity ── */}
         <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
           <p className={tw('text-sm font-semibold text-black mb-3', 'text-sm font-semibold text-white mb-3')}>Recent Activity</p>
