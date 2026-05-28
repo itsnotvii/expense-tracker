@@ -9,8 +9,7 @@ function App() {
   // Settings in header
   const [headerBg, setHeaderBg] = useState({ type: 'solid', value: '' })
   const [settingsOpen, setSettingsOpen] = useState(false)
-
-
+  const [hamburgerFlipped, setHamburgerFlipped] = useState(false)
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
@@ -24,9 +23,9 @@ function App() {
   const [recurringFrequency, setRecurringFrequency] = useState('monthly')
 
   // Date Defaults
-  const today = new Date().toISOString().split('T')[0]
-  const [date, setDate] = useState(today)
-  const [incomeDate, setIncomeDate] = useState(today)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const [date, setDate] = useState(todayStr)
+  const [incomeDate, setIncomeDate] = useState(todayStr)
 
   // Success state
   const [success, setSuccess] = useState(null)
@@ -88,6 +87,10 @@ function App() {
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalSpent) / totalIncome * 100).toFixed(1) : 0
   const netWorth = totalAssets + totalIncome - totalSpent
 
+  const headerDark = headerBg.type === 'photo' || 
+    ['#000000','#0f172a','#1e3a5f','#14532d','#3b0764','#7f1d1d','#431407'].includes(headerBg.value) ||
+    headerBg.type === 'gradient'
+
   const showSuccess = (type) => {
     setSuccess(type)
     setTimeout(() => setSuccess(null), 2000)
@@ -116,23 +119,20 @@ function App() {
       body: JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
     }).then(r => r.json()).then(d => {
       setExpenses([{ ...d, amount: parseFloat(d.amount) }, ...expenses])
-      setCategory(''); setAmount(''); setDescription(''); setDate(''); setIsRecurring(false)
+      setCategory(''); setAmount(''); setDescription(''); setDate(todayStr); setIsRecurring(false)
       setModalOpen(false)
       showSuccess('expense')
     }).catch(err => console.error(err))
   }
 
   const addIncome = () => {
-
-    console.log('addIncome called', { incomeSource, incomeAmount, incomeDate })
-
     if (!incomeSource || !incomeAmount || !incomeDate) return alert('Fill in required fields')
     fetch(`${import.meta.env.VITE_API_URL}/api/income`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
     }).then(r => r.json()).then(d => {
       setIncome([{ ...d, amount: parseFloat(d.amount) }, ...income])
-      setIncomeSource(''); setIncomeAmount(''); setIncomeDescription(''); setIncomeDate(''); setIncomeIsRecurring(false)
+      setIncomeSource(''); setIncomeAmount(''); setIncomeDescription(''); setIncomeDate(todayStr); setIncomeIsRecurring(false)
       setModalOpen(false)
       showSuccess('income')
     }).catch(err => console.error(err))
@@ -205,10 +205,18 @@ function App() {
     'linear-gradient(135deg, #232526, #414345',
   ]
 
-  const headerDark = headerBg.type === 'photo' || 
-    ['#000000','#0f172a','#1e3a5f','#14532d','#3b0764','#7f1d1d','#431407'].includes(headerBg.value) ||
-    headerBg.type === 'gradient'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  const openSettings = () => {
+    setHamburgerFlipped(true)
+    setSettingsOpen(true)
+  }
   
+  const closeSettings = () => {
+    setHamburgerFlipped(false)
+    setSettingsOpen(false)
+  }
 
   return (
     <div className={tw('min-h-screen bg-gray-100', 'min-h-screen bg-gray-950')}>
@@ -224,59 +232,22 @@ function App() {
         }}>
         <div className="flex justify-between items-start">
           <div>
-            <p style={{ color: headerDark ? '#fff' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋</p>
-            <h1 style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="text-2xl font-bold mt-0.5">Dashboard</h1>
-            <p style={{ color: headerDark ? '#fff' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mt-1">You've spent <span style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="font-semibold">${(() => { const w = new Date(); w.setDate(w.getDate() - 7); return expenses.filter(e => new Date(e.date) >= w).reduce((s, e) => s + parseFloat(e.amount), 0).toFixed(2) })()}</span> this week</p>
+            <p style={{ color: headerDark ? '#ffffff99' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mb-1">{greeting}</p>
+            <h1 style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="text-3xl font-bold traacking-tight">Dashboard</h1>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setSettingsOpen(true)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition ${headerDark || darkMode ? 'bg-white/20 hover:bg-white/30' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={headerDark || darkMode ? '#fff' : '#666'} strokeWidth="2" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-              </button>
-              <button onClick={() => setDarkMode(!darkMode)}
-                className={tw(
-                  'relative w-14 h-7 rounded-full bg-gray-200 transition-colors duration-300 flex items-center',
-                  'relative w-14 h-7 rounded-full bg-gray-700 transition-colors duration-300 flex items-center'
-                )}>
-                <span className={tw(
-                  'absolute left-1 w-5 h-5 rounded-full bg-white transition-transform duration-300 flex items-center justify-center',
-                  'absolute left-1 w-5 h-5 rounded-full bg-gray-900 transition-transform duration-300 translate-x-7 flex items-center justify-center'
-                )}>
-                  {darkMode ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
-                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                  ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
-                      <circle cx="12" cy="12" r="5"/>
-                      <line x1="12" y1="1" x2="12" y2="3"/>
-                      <line x1="12" y1="21" x2="12" y2="23"/>
-                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                      <line x1="1" y1="12" x2="3" y2="12"/>
-                      <line x1="21" y1="12" x2="23" y2="12"/>
-                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                    </svg>
-                  )}
-                </span>
-              </button>
-            </div>
-            <div className="text-right">
-              <p style={{ color: headerDark ? '#ffffff99' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mb-1">Net Worth</p>
-              <span style={{ 
-                color: headerDark ? '#fff' : darkMode ? '#fff' : '#000',
-                borderColor: headerDark ? '#fff' : darkMode ? '#fff' : '#000'
-              }} className="inline-block text-2xl font-bold border-2 rounded-2xl px-4 py-1">${netWorth.toFixed(2)}</span>
-            </div>
-          </div>
+          
+          <button
+            onClick={settingsOpen ? closeSettings : openSettings}
+            className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${headerDark || darkmode ? 'bg-white/15 hover:bg-white/25' : 'bg-gray-100 hover:bg-gray-200'}`}
+            style={{ transform: hamburgerFlipped ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          >
+            <span style={{ background: headerDark || darkMode ? '#fff' : '#333' }} className="w-5 h-0.5 rounded-full transition-all" />
+            <span style={{ background: headerDark || darkMode ? '#fff' : '#333' }} className="w-3.5 h-0.5 rounded-full transition-all" />
+            <span style={{ background: headerDark || darkMode ? '#fff' : '#333' }} className="w-5 h-0.5 rounded-full transition-all" />
+          </button>
         </div>
       </div>
-
+          
       <div className="px-6 py-6 pb-24">
 
         {/* ── Time Period Tabs ── */}
@@ -294,33 +265,24 @@ function App() {
 
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
-            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Spent</p>
-            <p className={tw('text-2xl font-bold text-black', 'text-2xl font-bold text-white')}>${totalSpent.toFixed(2)}</p>
-            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{filteredExpenses.length} transactions</p>
-          </div>
-          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
-            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Income</p>
-            <p className="text-2xl font-bold text-green-500">${totalIncome.toFixed(2)}</p>
-            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{filteredIncome.length} entries</p>
-          </div>
-          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
-            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Savings Rate</p>
-            <p className={`text-2xl font-bold ${parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500'}`}>{savingsRate}%</p>
-            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>of income saved</p>
-          </div>
-          <div className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
-            <p className={tw('text-gray-400 text-xs font-medium mb-1', 'text-gray-500 text-xs font-medium mb-1')}>Total Assets</p>
-            <p className="text-2xl font-bold text-purple-500">${totalAssets.toFixed(2)}</p>
-            <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{assets.length} assets</p>
-          </div>
-        </div> 
-
+          {[
+            { label: 'Total Spent', value: `$${totalSpent.toFixed(2)}`, sub: `${filteredExpenses.length} transactions`, color: tw('text-black', 'text-white') },
+            { label: 'Total Income', value: `$${totalIncome.toFixed(2)}`, sub: `${filteredIncome.length} entries`, color: 'text-green-500' },
+            { label: 'Savings Rate', value: `${savingsRate}%`, sub: 'of income saved', color: parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500' },
+            { label: 'Total Assets', value: `$${totalAssets.toFixed(2)}`, sub: `${assets.length} aseets`, color: 'text-purple-500' },
+          ].map((card, i) => (
+            <div key={i} className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+              <p className={tw('text-gray-400 text-xs font-medium mb-2', 'text-green-500 text-xs font-medium mb-2')}>{card.label}</p>
+              <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+              <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs ,t-1')}>{card.sub}</p>
+            </div>
+          ))}
+        </div>
 
         {/* Spending and Income Chart */}
         <div className={tw('bg-white rounded-2xl p-4 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-4 mb-6')}>
           <p className={tw('text-sm font-semibold text-black mb-4', 'text-sm font-semibold text-white mb-4')}>Last 7 Days</p>
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={180}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#1f2937': '#f3f4f6'} />
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: darkMode ? '#6b7280' : '#9ca3af'}} axisLine={false} tickLine={false} />
@@ -329,12 +291,38 @@ function App() {
                 formatter={(value, name) => [`$${value.toFixed(2)}`, name === 'spent' ? 'Spent' : 'Income']}
                 contentStyle={{ background: darkMode ? '#111827' : '#fff', border: 'none', borderRadius: '12px', fontSize: '12px' }}
               />
-              <Legend formatter={v => v === 'spent' ? 'Spent' : 'Income'} />
               <Line type="monotone" dataKey="spent" stroke="#ef4444" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="earned" stroke="#22c55e" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        {Object.keys(byCategory).length > 0 && (
+          <div className={tw('bg-white rounded-2xl p-5 shadow-sm mb-6', 'bg-gray-900 rounded-2xl p-5 mb-6')}>
+            <p className={tw('text-sm font-semibold text-black mb-4', 'text-sm font-semibold text-white mb-4')}>Spending by Category</p>
+            <div className="space-y-3">
+              {Object.entries(byCategory).sort((a,b) => b[1] - a[1]).map(([name, value], i) => {
+                const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f97316', '#a855f7', '#ec4899']
+                const color = colors[i % colors.length]
+                const pct = (value / totalSpent * 100).toFixed(0)
+                return (
+                  <div key={name}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={tw('text-xs font-medium text-gray-600', 'text-xs font-medium text-gray-400')}>{name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={tw('text-xs text-gray-400', 'text-xs text-gray-500')}>{pct}%</span>
+                        <span className={tw('text-xs font-semibold text-black', 'text-xs font-semibold text-white')}>${parseFloat(value).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className={tw('w-full bg-gray-100 rounded-full h-2', 'w-full bg-gray-800 rounded-full h-2')}>
+                      <div className="h-2 rounded-full transition-full duration-500" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
         
 
         {/* ── Recent Activity ── */}
@@ -391,6 +379,189 @@ function App() {
           </svg>
           {success === 'expense' ? 'Expense added' : success === 'income' ? 'Income added' : 'Asset added'}
         </div>
+      )}
+
+      { /* - Floating + Button - */ }
+      <button onClick={() => setModalOpen(true)}
+        className={tw(
+          'fixed bottom-8 right-6 w-16 h-16 bg-black text-white rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40',
+          'fixed bottom-8 right-6 w-16 h-16 bg-white text-black rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40'
+        )}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="10" y1="3" x2="10" y2="17"/>
+          <line x1="3" y1="10" x2="17" y2="10"/>
+        </svg>
+      </button>
+
+
+      { /* Modal Centered */ }
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+          <div className={tw('bg-white rounded-3xl w-full max-w-md p-6', 'bg-gray-900 rounded-3xl w-full max-w-md p-6')}
+            style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Add New</h2>
+              <button onClick={() => setModalOpen(false)}
+                className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
+            </div>
+
+            <div className={tw('flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl', 'flex gap-1 mb-5 bg-gray-800 p1 rounded-xl')}>
+              {['expense', 'income', 'asset'].map(tab => (
+                <button key={tab} onClick={() => setModalTab(tab)}
+                  className={tw(
+                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`,
+                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-gray-700 text-white' : 'text-gray-500'}`
+                  )}>
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {modalTab === 'expense' && (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className={tw('text-xs text-gray-400 mb-2', 'text-xs text-gray-500 mb-2')}>Category</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { value: 'Food', emoji: '🍔' }, { value: 'Rent', emoji: '🏠' },
+                      { value: 'Utilities', emoji: '💡' }, { value: 'Transport', emoji: '🚗' },
+                      { value: 'Entertainment', emoji: '🎬' }, { value: 'Health', emoji: '💊' },
+                      { value: 'Shopping', emoji: '🛍️' }, { value: 'Other', emoji: '📌' },
+                    ].map(c => (
+                      <button key={c.value} onClick={() => setCategory(c.value)}
+                        className={tw(
+                          `flex flex-col items-center gap-1 p-2 rounded-xl border transition text-xs font-medium ${category === c.value ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`,
+                          `flex flex-col items-center gap-1 p-2 rounded-xl border transition text-xs font-medium ${category === c.value ? 'border-white bg-white text-black' : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'}`
+                        )}>
+                        <span className="text-xl">{c.emoji}</span>
+                        <span>{c.value}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={tw('flex items-center border border-gray-200 rounded-xl bg-white', 'flex items-center border border-gray-700 rounded-xl bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm', 'pl-4 text-gray-500 text-sm')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+                </div>
+                <input className={inputCls} placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
+                <input className={inputCls} type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <label className={tw('flex items-center gap-3 p-3 rounded-xl bg-gray-50', 'flex items-center gap-3 p-3 rounded-xl bg-gray-800')}>
+                  <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} className="w-4 h-4" />
+                  <span className={tw('text-black text-sm', 'text-white text-sm')}>Recurring?</span>
+                </label>
+                {isRecurring && (
+                  <select className={inputCls} value={recurringFrequency} onChange={e => setRecurringFrequency(e.target.value)}>
+                    <option>weekly</option><option>monthly</option><option>yearly</option>
+                  </select>
+                )}
+                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addExpense()}>Add Expense</button>
+              </div>
+            )}
+
+            {modalTab === 'income' && (
+              <div className="flex flex-col gap-3">
+                <input className={inputCls} placeholder="Source (e.g. Salary, Freelance)" value={incomeSource} onChange={e => setIncomeSource(e.target.value)} />
+                <div className={tw('flex items-center border border-gray-200 rounded-xl bg-white', 'flex items-center border border-gray-700 rounded-xl bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm', 'pl-4 text-gray-500 text-sm')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={incomeAmount} onChange={e => setIncomeAmount(e.target.value)} />
+                </div>
+                <input className={inputCls} placeholder="Description (optional)" value={incomeDescription} onChange={e => setIncomeDescription(e.target.value)} />
+                <input className={inputCls} type="date" value={incomeDate} onChange={e => setIncomeDate(e.target.value)} />
+                <label className={tw('flex items-center gap-3 p-3 rounded-xl bg-gray-50', 'flex items-center gap-3 p-3 rounded-xl bg-gray-800')}>
+                  <input type="checkbox" checked={incomeIsRecurring} onChange={e => setIncomeIsRecurring(e.target.checked)} className="w-4 h-4" />
+                  <span className={tw('text-black text-sm', 'text-white text-sm')}>Recurring?</span>
+                </label>
+                {incomeIsRecurring && (
+                  <select className={inputCls} value={incomeRecurringFrequency} onChange={e => setIncomeRecurringFrequency(e.target.value)}>
+                    <option>weekly</option><option>monthly</option><option>yearly</option>
+                  </select>
+                )}
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addIncome()}>Add Income</button>
+              </div>
+            )}
+
+            {modalTab === 'asset' && (
+              <div className="flex flex-col gap-3">
+                <input className={inputCls} placeholder="Asset name" value={assetName} onChange={e => setAssetName(e.target.value)} />
+                <select className={inputCls} value={assetType} onChange={e => setAssetType(e.target.value)}>
+                  <option>Cash</option><option>Stocks</option><option>Crypto</option>
+                  <option>Precious Metals</option><option>Real Estate</option><option>Other</option>
+                </select>
+                <div className={tw('flex items-center border border-gray-200 rounded-xl bg-white', 'flex items-center border border-gray-700 rounded-xl bg-gray-800')}>
+                  <span className={tw('pl-4 text-gray-400 text-sm', 'pl-4 text-gray-500 text-sm')}>$</span>
+                  <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={assetValue} onChange={e => setAssetValue(e.target.value)} />
+                </div>
+                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addAsset()}>Add Asset</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      { /* - Settings Panel - */ }
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) closeSettings() }}>
+          <div className={tw('bg-white rounded-t-3xl w-full max-w-2xl p-6 pb-10', 'bg-gray-900 rounded-t-3xl w-full max-w-2xl p-6 pb-10' )}
+            style={{ maxHeight: '85vh', overflowY: 'auto' }}>
+
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Settings</h2>
+              <button onClick={closeSettings}
+                className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
+            </div>
+
+            {/* Net Worth */}
+            <div className={tw('bg-gray-50 rounded-2xl p-4 mb-6', 'bg-gray-800 rounded-2xl p-4 mb-6')}>
+              <p className={tw('text-xs text-gray-400 mb-1', 'text-xs text-gray-500 mb-1')}>Net Worth</p>
+              <p className={tw('text-3xl font-bold text-black', 'text-3xl font-bold text-white')}>${netWorth.toFixed(2)}</p>
+              <div className="flex gap-4 mt-3">
+                <div>
+                  <p className="text-xs text-green-500 font-medium">Income</p>
+                  <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>${totalIncome.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-red-500 font-medium">Spent</p>
+                  <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>${totalAssets.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-purple-500 font-medium">Assets</p>
+                  <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>${totalAssets.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Dark Mode */}
+            <div className={tw('flex items-center justify-between p-4 rounded-2xl bg-gray-50 mb-6', 'flex items-center justify-between p-4 rounded-2xl bg-gray-800 mb-6')}>
+              <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>Dark Mode</p>
+              <button onClick={() => setDarkMode(!darkMode)}
+                className={`relative w-14 h-7 rounded-full transition-colors duration-300 flex items center ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                <span className={`absolute left-1 w-5 h-5 rounded-full transition-transform duration-300 flex items-center justify-center ${darkMode ? 'translate-x-7 bg-gray-900' : 'bg-white'}`}>
+                  {darkMode ? (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="5"/>
+                      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                  )}
+                </span>
+              </button>
+            </div>
+
+            {/* Header Colors */}
+            <p className=
+
+          </div>
+          
       )}
 
       { /* New Dashboard */ }
