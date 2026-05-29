@@ -213,10 +213,21 @@ function App() {
             darkMode ? '#111827' : '#ffffff',
           borderColor: darkMode ? '#1f2937' : '#e5e7eb'
         }}>
-        <div className="flex justify-between items-center">
-          <div>
-            <p style={{ color: headerDark ? '#ffffff99' : darkMode ? '#6b7280' : '#9ca3af' }} className="text-xs mb-1">{greeting} 👋</p>
-            <h1 style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex justify-between items-center relative">
+          <h1 style={{ color: headerDark ? '#fff' : darkMode ? '#fff' : '#000' }} className="text-3xl font-bold tracking-tight">Dashboard</h1>
+
+          {/* Cycling banner */}
+          <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
+            <p style={{
+              color: headerDark ? '#ffffffcc' : darkMode ? '#9ca3af' : '#6b7280',
+              opacity: bannerVisible ? 1 : 0,
+              transition: 'opacity 0.3s ease',
+              fontSize: '12px',
+              fontWeight: '500',
+              whiteSpace: 'nowrap'
+            }}>
+              {bannerMessage[bannerIndex]}
+            </p>
           </div>
 
           {/* Hamburger */}
