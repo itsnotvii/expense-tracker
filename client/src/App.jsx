@@ -41,6 +41,8 @@ function App() {
   const [bannerIndex, setBannerIndex] = useState(0)
   const [bannerVisible, setBannerVisible] = useState(true)
 
+  const [cardModal, setCardModal] = useState(null)
+
   const tw = (light, dark) => darkMode ? dark : light
 
   useEffect(() => {
@@ -278,10 +280,11 @@ function App() {
             { label: 'Savings Rate', value: `${savingsRate}%`, sub: 'of income saved', color: parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500' },
             { label: 'Total Assets', value: `$${totalAssets.toFixed(2)}`, sub: `${assets.length} assets`, color: 'text-purple-500' },
           ].map((card, i) => (
-            <div key={i} className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
-              <p className={tw('text-gray-400 text-xs font-medium mb-2', 'text-gray-500 text-xs font-medium mb-2')}>{card.label}</p>
-              <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-              <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{card.sub}</p>
+            <div key={i} onClick={() => setCardModal(card.key)}
+              className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
+                <p className={tw('text-gray-400 text-xs font-medium mb-2', 'text-gray-500 text-xs font-medium mb-2')}>{card.label}</p>
+                <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+                <p className={tw('text-gray-400 text-xs mt-1', 'text-gray-500 text-xs mt-1')}>{card.sub}</p>
             </div>
           ))}
         </div>
