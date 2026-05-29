@@ -438,7 +438,19 @@ function App() {
             )}
 
             {/* Assets breakdown */}
-            
+            {cardModal === 'assets' && (
+              <div className="space-y-3">
+                <p className={tw('text-3xl font-bold text-black mb-4', 'text-3xl font-bold text-white mb-4')}>${totalAssets.toFixed(2)}</p>
+                {[...assets].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).map(a => {
+                  const pct = (parseFloat(a.value) / totalAssets * 100).toFixed(0)
+                  return (
+                    <div key={a.id} className={tw('p-3 rounded-xl bg-gray-50', 'p-3 rounded-xl bg-gray-800')}>
+                      <div className="flex justify-between mb-1">
+                        <p className={tw('text-sm font-semibold')}
+                  )
+                })}
+            )}
+
 
           </div>
       )}
