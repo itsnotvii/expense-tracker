@@ -52,17 +52,6 @@ function App() {
       .then(r => r.json()).then(d => setAssets(Array.isArray(d) ? d : [])).catch(() => setAssets([]))
   }, [])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBannerVisible(false)
-      setTimeout(() => {
-        setBannerIndex(prev => (prev + 1) % 4)
-        setBannerVisible(true)
-      }, 300)
-    }, 2500)
-    return () => clearInterval(interval)
-  }, [recentActivity, totalSpent, savingsRate])
-
   const filterByPeriod = (items) => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -103,6 +92,17 @@ function App() {
     ...filteredIncome.map(i => ({ ...i, _type: 'income' })),
     ...assets.map(a => ({ ...a, date: a.created_at?.split('T')[0] || '', _type: 'asset' }))
   ].filter(i => i.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBannerVisible(false)
+      setTimeout(() => {
+        setBannerIndex(prev => (prev + 1) % 4)
+        setBannerVisible(true)
+      }, 300)
+    }, 2500)
+    return () => clearInterval(interval)
+  }, [recentActivity, totalSpent, savingsRate])
 
   const addExpense = () => {
     if (!category || !amount || !date) return alert('Fill in required fields')
@@ -185,8 +185,8 @@ function App() {
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   const latestTransaction = recentActivity[0]
-  constBannerMessages = [
-    `{greeting}`,
+  const bannerMessages = [
+    `${greeting}`,
     latestTransaction ? `Latest: ${latestTransaction._type === 'expense' ? '-' : '+'}$${parseFloat(latestTransaction._type === 'asset' ? latestTransaction.value : latestTransaction.amount).toFixed(2)} · ${latestTransaction._type === 'expense' ? latestTransaction.category : latestTransaction._type === 'income' ? latestTransaction.source : latestTransaction.name}` : `${greeting}`, 
     `This monthL $${totalSpent.toFixed(2)} spent`,
     `Savings rate: ${savingsRate}%`,
@@ -226,7 +226,7 @@ function App() {
               fontWeight: '500',
               whiteSpace: 'nowrap'
             }}>
-              {bannerMessage[bannerIndex]}
+              {bannerMessages[bannerIndex]}
             </p>
           </div>
 
