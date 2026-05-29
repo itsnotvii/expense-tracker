@@ -94,15 +94,27 @@ function App() {
   ].filter(i => i.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
 
   useEffect(() => {
+    const greetingTimeout = setTimeout(() => {
+      setBannerVisible(false)
+      setTimeout(() => {
+        setBannerIndex(1)
+        setBannerVisible(true)
+      }, 300)
+    }, 3000) 
+    return () => clearTimeout(greetingTimeout)
+  }, [])
+
+  useEffect(() => {
+    if (bannerIndex === 0) return
     const interval = setInterval(() => {
       setBannerVisible(false)
       setTimeout(() => {
-        setBannerIndex(prev => (prev + 1) % 4)
+        setBannerIndex(prev => prev === bannerMessages.length - 1 ? 1 : prev + 1)
         setBannerVisible(true)
       }, 300)
-    }, 2500)
+    }, 4000)
     return () => clearInterval(interval)
-  }, [recentActivity, totalSpent, savingsRate])
+  }, [bannerIndex])
 
   const addExpense = () => {
     if (!category || !amount || !date) return alert('Fill in required fields')
@@ -188,7 +200,7 @@ function App() {
   const bannerMessages = [
     `${greeting}`,
     latestTransaction ? `Latest: ${latestTransaction._type === 'expense' ? '-' : '+'}$${parseFloat(latestTransaction._type === 'asset' ? latestTransaction.value : latestTransaction.amount).toFixed(2)} · ${latestTransaction._type === 'expense' ? latestTransaction.category : latestTransaction._type === 'income' ? latestTransaction.source : latestTransaction.name}` : `${greeting}`, 
-    `This monthL $${totalSpent.toFixed(2)} spent`,
+    `This month: $${totalSpent.toFixed(2)} spent`,
     `Savings rate: ${savingsRate}%`,
   ]
 
@@ -205,7 +217,7 @@ function App() {
     <div className={tw('min-h-screen bg-gray-100', 'min-h-screen bg-gray-950')}>
 
       {/* ── Header ── */}
-      <div className="px-6 pt-12 pb-6 border-b"
+      <div className="px-6 pt-7 pb-6 border-b"
         style={{
           background: headerBg.type === 'photo' ? `url(${headerBg.value}) center/cover no-repeat` :
             headerBg.type === 'gradient' ? headerBg.value :
