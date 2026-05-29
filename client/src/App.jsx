@@ -187,7 +187,9 @@ function App() {
   const latestTransaction = recentActivity[0]
   constBannerMessages = [
     `{greeting}`,
-    latestTransaction ? `Latest: ${latestTransaction._type === 'expense' ? '-' : '+'}$$`
+    latestTransaction ? `Latest: ${latestTransaction._type === 'expense' ? '-' : '+'}$${parseFloat(latestTransaction._type === 'asset' ? latestTransaction.value : latestTransaction.amount).toFixed(2)} · ${latestTransaction._type === 'expense' ? latestTransaction.category : latestTransaction._type === 'income' ? latestTransaction.source : latestTransaction.name}` : `${greeting}`, 
+    `This monthL $${totalSpent.toFixed(2)} spent`,
+    `Savings rate: ${savingsRate}%`,
   ]
 
   const openSettings = () => {
