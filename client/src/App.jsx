@@ -275,10 +275,10 @@ function App() {
         {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           {[
-            { label: 'Total Spent', value: `$${totalSpent.toFixed(2)}`, sub: `${filteredExpenses.length} transactions`, color: tw('text-black', 'text-white') },
-            { label: 'Total Income', value: `$${totalIncome.toFixed(2)}`, sub: `${filteredIncome.length} entries`, color: 'text-green-500' },
-            { label: 'Savings Rate', value: `${savingsRate}%`, sub: 'of income saved', color: parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500' },
-            { label: 'Total Assets', value: `$${totalAssets.toFixed(2)}`, sub: `${assets.length} assets`, color: 'text-purple-500' },
+            { label: 'Total Spent', value: `$${totalSpent.toFixed(2)}`, sub: `${filteredExpenses.length} transactions`, color: tw('text-black', 'text-white'), key: 'spent' },
+            { label: 'Total Income', value: `$${totalIncome.toFixed(2)}`, sub: `${filteredIncome.length} entries`, color: 'text-green-500', key: 'income' },
+            { label: 'Savings Rate', value: `${savingsRate}%`, sub: 'of income saved', color: parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500', key: 'savings' },
+            { label: 'Total Assets', value: `$${totalAssets.toFixed(2)}`, sub: `${assets.length} assets`, color: 'text-purple-500', key: 'assets' },
           ].map((card, i) => (
             <div key={i} onClick={() => setCardModal(card.key)}
               className={tw('bg-white rounded-2xl p-4 shadow-sm', 'bg-gray-900 rounded-2xl p-4')}>
@@ -379,27 +379,27 @@ function App() {
         </div>
       </div>
 
-      {/* - Card Detail Modal - */}
+      {/* ── Card Detail Modal ── */}
       {cardModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
           onClick={e => { if (e.target === e.currentTarget) setCardModal(null) }}>
-          <div className={tw('bg-white rounded-3xl w-full max-w-md p-6', 'bg-gray-900 rounded-2xl w-full max-w-md p-6')}
+          <div className={tw('bg-white rounded-3xl w-full max-w-md p-6', 'bg-gray-900 rounded-3xl w-full max-w-md p-6')}
             style={{ maxHeight: '80vh', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-5">
               <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>
                 {cardModal === 'spent' ? 'Total Spent' : cardModal === 'income' ? 'Total Income' : cardModal === 'assets' ? 'Total Assets' : 'Savings Rate'}
               </h2>
               <button onClick={() => setCardModal(null)}
-                className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center trxt-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
+                className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
             </div>
 
             {/* Spent breakdown */}
             {cardModal === 'spent' && (
               <div className="space-y-3">
-                <p className={tw('text-3xl font-bold text-black mb-4', 'font-3xl font-bold text-white mb-4')}>${totalSpent.toFixed(2)}</p>
+                <p className={tw('text-3xl font-bold text-black mb-4', 'text-3xl font-bold text-white mb-4')}>${totalSpent.toFixed(2)}</p>
                 {Object.entries(byCategory).sort((a, b) => b[1] - a[1]).map(([name, value], i) => {
-                  const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f97316', '#a855f7', '#ec4899']
+                  const colors = ['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899']
                   const pct = (value / totalSpent * 100).toFixed(0)
                   return (
                     <div key={name}>
@@ -407,7 +407,7 @@ function App() {
                         <span className={tw('text-sm font-medium text-gray-700', 'text-sm font-medium text-gray-300')}>{name}</span>
                         <div className="flex gap-2">
                           <span className={tw('text-xs text-gray-400', 'text-xs text-gray-500')}>{pct}%</span>
-                          <span className={tw('text-sm font-medium text-black', 'text-sm font-semibold text-white')}>${parseFloat(value).toFixed(2)}</span>
+                          <span className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>${parseFloat(value).toFixed(2)}</span>
                         </div>
                       </div>
                       <div className={tw('w-full bg-gray-100 rounded-full h-2', 'w-full bg-gray-800 rounded-full h-2')}>
@@ -416,7 +416,7 @@ function App() {
                     </div>
                   )
                 })}
-                {Object.keys(byCategory).length === 0 && <p className={tw('text-gray-400 text-sm text-center py-4', 'text-gray-500 text-sm text-center py-4')}>No espenses yet</p>}
+                {Object.keys(byCategory).length === 0 && <p className={tw('text-gray-400 text-sm text-center py-4', 'text-gray-500 text-sm text-center py-4')}>No expenses yet</p>}
               </div>
             )}
 
@@ -433,7 +433,7 @@ function App() {
                     <p className="text-sm font-bold text-green-500">+${parseFloat(i.amount).toFixed(2)}</p>
                   </div>
                 ))}
-                {filteredIncome.length === 0 && <p className={tw('text-gray-400 text-sm text-enter py-4', 'text-gray-500 text-sm text-center py-4')}>No income yet</p>}
+                {filteredIncome.length === 0 && <p className={tw('text-gray-400 text-sm text-center py-4', 'text-gray-500 text-sm text-center py-4')}>No income yet</p>}
               </div>
             )}
 
@@ -446,14 +446,51 @@ function App() {
                   return (
                     <div key={a.id} className={tw('p-3 rounded-xl bg-gray-50', 'p-3 rounded-xl bg-gray-800')}>
                       <div className="flex justify-between mb-1">
-                        <p className={tw('text-sm font-semibold')}
+                        <div>
+                          <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>{a.name}</p>
+                          <p className={tw('text-xs text-gray-400', 'text-xs text-gray-500')}>{a.type}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-purple-500">${parseFloat(a.value).toFixed(2)}</p>
+                          <p className={tw('text-xs text-gray-400', 'text-xs text-gray-500')}>{pct}%</p>
+                        </div>
+                      </div>
+                      <div className={tw('w-full bg-gray-100 rounded-full h-1.5 mt-2', 'w-full bg-gray-700 rounded-full h-1.5 mt-2')}>
+                        <div className="h-1.5 rounded-full bg-purple-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
                   )
                 })}
+                {assets.length === 0 && <p className={tw('text-gray-400 text-sm text-center py-4', 'text-gray-500 text-sm text-center py-4')}>No assets yet</p>}
+              </div>
             )}
 
-
+            {/* Savings breakdown */}
+            {cardModal === 'savings' && (
+              <div>
+                <p className={`text-3xl font-bold mb-4 ${parseFloat(savingsRate) >= 0 ? 'text-blue-500' : 'text-red-500'}`}>{savingsRate}%</p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Total Income', value: `$${totalIncome.toFixed(2)}`, color: 'text-green-500' },
+                    { label: 'Total Spent', value: `$${totalSpent.toFixed(2)}`, color: 'text-red-500' },
+                    { label: 'Saved', value: `$${(totalIncome - totalSpent).toFixed(2)}`, color: parseFloat(totalIncome - totalSpent) >= 0 ? 'text-blue-500' : 'text-red-500' },
+                  ].map(row => (
+                    <div key={row.label} className={tw('flex justify-between items-center p-3 rounded-xl bg-gray-50', 'flex justify-between items-center p-3 rounded-xl bg-gray-800')}>
+                      <p className={tw('text-sm font-medium text-gray-600', 'text-sm font-medium text-gray-400')}>{row.label}</p>
+                      <p className={`text-sm font-bold ${row.color}`}>{row.value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className={tw('mt-4 w-full bg-gray-100 rounded-full h-3', 'mt-4 w-full bg-gray-800 rounded-full h-3')}>
+                  <div className="h-3 rounded-full bg-blue-500 transition-all" style={{ width: `${Math.min(Math.max(parseFloat(savingsRate), 0), 100)}%` }} />
+                </div>
+                <p className={tw('text-xs text-gray-400 mt-2 text-center', 'text-xs text-gray-500 mt-2 text-center')}>{savingsRate}% of income saved</p>
+              </div>
+            )}
           </div>
+        </div>
       )}
+
 
       {/* ── Toast ── */}
       {success && (
@@ -591,7 +628,7 @@ function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
           onClick={e => { if (e.target === e.currentTarget) closeSettings() }}>
-          <div className={tw('bg-white rounded-3xl w-full max-w-2xl p-6 pb-10', 'bg-gray-900 rounded-t-3xl w-full max-w-2xl p-6 pb-10')}
+          <div className={tw('bg-white rounded-3xl w-full max-w-2xl p-6 pb-10', 'bg-gray-900 rounded-3xl w-full max-w-2xl p-6 pb-10')}
             style={{ maxHeight: '85vh', overflowY: 'auto' }}>
 
             <div className="flex justify-between items-center mb-6">
