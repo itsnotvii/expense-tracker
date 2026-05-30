@@ -154,6 +154,7 @@ function App() {
     }).catch(err => console.error(err))
   }
 
+  // Handlers for deletion
   const deleteExpense = id => fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, { method: 'DELETE' }).then(() => setExpenses(expenses.filter(e => e.id !== id)))
   const deleteIncome = id => fetch(`${import.meta.env.VITE_API_URL}/api/income/${id}`, { method: 'DELETE' }).then(() => setIncome(income.filter(i => i.id !== id)))
   const deleteAsset = id => fetch(`${import.meta.env.VITE_API_URL}/api/assets/${id}`, { method: 'DELETE' }).then(() => setAssets(assets.filter(a => a.id !== id)))
