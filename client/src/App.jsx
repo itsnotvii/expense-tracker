@@ -589,7 +589,7 @@ function App() {
             style={{ maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-5">
               <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Add New</h2>
-              <button onClick={() => setModalOpen(false)}
+              onClick={() => { setModalOpen(false); setEditingItem(null) }}
                 className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
             </div>
 
