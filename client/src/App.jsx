@@ -43,6 +43,8 @@ function App() {
 
   const [cardModal, setCardModal] = useState(null)
 
+  const [editingItem, setEditingItem] = useState(null)
+
   const tw = (light, dark) => darkMode ? dark : light
 
   useEffect(() => {
@@ -162,6 +164,66 @@ function App() {
     if (item._type === 'expense') deleteExpense(item.id)
     else if (item._type === 'income') deleteIncome(item.id)
     else deleteAsset(item.id)
+  }
+
+  const startEdit = (item) => {
+    setEditingItem(item)
+    if (item._type === 'expense') {
+      setModalTab('expense')
+      setCategory(item.category)
+      setAmount(String(item.amount))
+      setDescription(item.description || '')
+      setDate(item.date)
+      setIsRecurring(item.is_recurring || false)
+      setRecurringFrequency(item.recurring_frequency || 'monthly')
+    } else if (item._type === 'income') {
+      setModalTab('income')
+      setIncomeSource(item.source)
+      setIncomeAmount(String(item.amount))
+      setIncomeDescription(item.description || '')
+      setIncomeDate(item.date)
+      setIncomeIsRecurring(item.is_recurring ||  false)
+      setIncomeRecurringFrequency(item.recurring_frequency || 'monthly')
+    } else {
+      setModalTab('asset')
+      setAssetName(item.name)
+      setAssetType(item.type)
+      setAssetValue(String(item.value))
+    }
+    setModalOpen(true)
+  }
+
+  const updateExpense = () => {
+    if (!category || !amount || !date) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${editingItem.id}`, {
+      method: 'PUT', header: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
+    }).then(r => r.json()).then(d => {
+      setExpenses(expenses.map(e => e.id === d.id ? {...d, amount: parseFloat(d.amount) } : e))
+      setEditingItem(null); setModalOpen(false); showSuccess('expense')
+    }).catch(err => console.error(err))
+  }
+
+  const updateIncome = () => {
+    if (!incomeSource || !incomeAmount || !incomeDate) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/income/${editingItem.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
+    }).then(r => r.json()).then(d => {
+      setIncome(income.map(i => i.id === d.id ? { ...d, amount: parseFloat(d.amount) } : i))
+      setEditingItem(null); setModalOpen(false); showSuccess('income')
+    }).catch(err => console.error(err))
+  }
+
+  const updateAsset = () => {
+    if (!assetName || !assetValue) return alert('Fill in required fields')
+    fetch(`${import.meta.env.VITE_API_URL}/api/income/${editingItem.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify({ name: assetName, type: assetType, value: parseFloat(assetValue) })
+    }).then(r => r.json()).then(d => {
+      setAssets(assets.map(a => a.id === d.id ? { ...d, value: parseFloat(d.value) } : a))
+      setEditingItem(null); setModalOpen(false); showSuccess('asset')
+    }).catch(err => console.error(err))
   }
 
   const getChartData = () => {
