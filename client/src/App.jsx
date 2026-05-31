@@ -589,7 +589,7 @@ function App() {
             style={{ maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-5">
               <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Add New</h2>
-              onClick={() => { setModalOpen(false); setEditingItem(null) }}
+              <button onClick={() => { setModalOpen(false); setEditingItem(null) }}
                 className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
             </div>
 
@@ -642,7 +642,10 @@ function App() {
                     <option>weekly</option><option>monthly</option><option>yearly</option>
                   </select>
                 )}
-                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addExpense()}>Add Expense</button>
+                <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-semibold transition mt-1"
+                  onClick={() => editingItem ? updateExpense() : addExpense()}>
+                  {editingItem ? 'Save Changes' : 'Add Expense'}
+                </button>
               </div>
             )}
 
@@ -664,7 +667,10 @@ function App() {
                     <option>weekly</option><option>monthly</option><option>yearly</option>
                   </select>
                 )}
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addIncome()}>Add Income</button>
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition mt-1"
+                  onClick={() => editingItem ? updateIncome() : addIncome()}>
+                  {editingItem ? 'Save Changes' : 'Add Income'}
+                </button>
               </div>
             )}
 
@@ -679,7 +685,10 @@ function App() {
                   <span className={tw('pl-4 text-gray-400 text-sm', 'pl-4 text-gray-500 text-sm')}>$</span>
                   <input className={tw('flex-1 px-2 py-3 text-black bg-transparent focus:outline-none text-sm', 'flex-1 px-2 py-3 text-white bg-transparent focus:outline-none text-sm')} placeholder="0.00" type="number" value={assetValue} onChange={e => setAssetValue(e.target.value)} />
                 </div>
-                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-semibold transition mt-1" onClick={() => addAsset()}>Add Asset</button>
+                <button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-xl font-semibold transition mt-1"
+                  onClick={() => editingItem ? updateAsset() : addAsset()}>
+                  {editingItem ? 'Save Changes' : 'Add Asset'}
+                </button>
               </div>
             )}
           </div>
