@@ -104,6 +104,48 @@ app.delete('/api/assets/:id', async (req, res) => {
   }
 })
 
+app.put('/api/expenses/:id', async (req, res) => {
+  const { category, amount, description, date, is_recurring, recurring_frequency } = req.body
+  try {
+    const result = await pool.query(
+      `UPDATE expenses SET category=$1, amount=$2, description=$3, date=$4, is_recurring=$5, recurring_frequency=#6 WHERE id=$7 AND user_id=$8 RETURNING *`,
+      [category, parseFloat(amount), description, date, is_recurring || false, recurring_frequency, req.params.id, 'demo-user']
+    )
+    res.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating expense:', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.put('/api/income/:id', async (req, res) => {
+  const { source, amount, description, date, is_recuring, recurring_frequency } = req.body
+  try {
+    const result = await pool.query(
+      `UPDATE income SET source=$1, amount=$2, description=$3, date=$4, is_recurring=$5, recurring_frequency=$6 WHERE id=$7 AND user_ud=$8 RETURNING *`,
+      [source, parseFloat(amount), description, date, is_recurring || false, recurring_frequency, req.params.id, 'demo-user']
+    )
+    res.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating income', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
+app.put('/api/assets/:id', async (req, res) => {
+  const { name, type, value } = req.body
+  try {
+    const result = await pool.query(
+      `UPDATE assets SET name=$1, type=$2, value=$3 WHERE id=$4 AND user_ID=$5 RETURNING *`,
+      [name, type, parseFloat(value), req.params.id, 'demo-user']
+    )
+    res.json(result.rows[0])
+  } catch (error) {
+    console.error('Error updating asset:', error)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
