@@ -128,3 +128,4 @@ expense-tracker/
     ├── db.js        # Database connection
     └── .env
 ```
+- Initial release
