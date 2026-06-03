@@ -1,4 +1,4 @@
-## Updates
+
 # Expense Tracker
 
 A full stack personal finance dashboard for tracking expenses, income, and assets.
