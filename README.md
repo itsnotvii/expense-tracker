@@ -1,7 +1,7 @@
 ## Updates
 # Expense Tracker
 
-A full stack personal finance dashboard for tracking expenses, income, and assets.
+Full stack personal finance dashboard for tracking expenses, income, and assets.
 
 **Live demo:** https://expense-tracker-three-hazel-55.vercel.app
 
