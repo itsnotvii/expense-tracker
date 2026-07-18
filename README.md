@@ -7,7 +7,7 @@ Full stack personal finance dashboard for tracking expenses, income, and assets.
 
 ## Features
 
-- Track expenses, income, and assets with full CRUD (create, read, update, delete)
+- Track your expenses, income, and assets with full CRUD (create, read, update, delete)
 - Dashboard with real-time stats — total spent, income, savings rate, net worth
 - Line chart showing spending vs income over the last 7 days
 - Category breakdown with animated progress bars
