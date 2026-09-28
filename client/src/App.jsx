@@ -1,12 +1,39 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
+// 'YYYY-MM-DD' in the user's local timezone (toISOString would give the UTC date)
+const localDateStr = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+// fetch wrapper that throws on non-2xx responses so failures aren't treated as success
+const api = async (path, options = {}) => {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options.headers }
+  })
+  const data = await res.json().catch(() => null)
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`)
+  return data
+}
+
+const loadSetting = (key, fallback) => {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback } catch { return fallback }
+}
+const saveSetting = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable or full (e.g. large photo) */ }
+}
+
+const PERIOD_LABELS = { all: 'All time', today: 'Today', week: 'Last 7 days', month: 'This month', year: 'This year' }
+const TYPE_LABELS = { expense: 'Expense', income: 'Income', asset: 'Asset' }
+
+const sumAmounts = items => items.reduce((s, i) => s + parseFloat(i.amount), 0)
+
 function App() {
   const [expenses, setExpenses] = useState([])
   const [income, setIncome] = useState([])
   const [assets, setAssets] = useState([])
 
-  const [headerBg, setHeaderBg] = useState({ type: 'solid', value: '' })
+  const [headerBg, setHeaderBg] = useState(() => loadSetting('headerBg', { type: 'solid', value: '' }))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [hamburgerFlipped, setHamburgerFlipped] = useState(false)
 
@@ -19,7 +46,7 @@ function App() {
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState('monthly')
 
-  const todayStr = new Date().toISOString().split('T')[0]
+  const todayStr = localDateStr()
   const [date, setDate] = useState(todayStr)
   const [incomeDate, setIncomeDate] = useState(todayStr)
 
@@ -36,7 +63,7 @@ function App() {
   const [assetValue, setAssetValue] = useState('')
 
   const [timePeriod, setTimePeriod] = useState('month')
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => loadSetting('darkMode', false))
 
   const [bannerIndex, setBannerIndex] = useState(0)
   const [bannerVisible, setBannerVisible] = useState(true)
@@ -47,25 +74,24 @@ function App() {
 
   const tw = (light, dark) => darkMode ? dark : light
 
+  useEffect(() => saveSetting('darkMode', darkMode), [darkMode])
+  useEffect(() => saveSetting('headerBg', headerBg), [headerBg])
+
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`)
-      .then(r => r.json()).then(d => setExpenses(Array.isArray(d) ? d : [])).catch(() => setExpenses([]))
-    fetch(`${import.meta.env.VITE_API_URL}/api/income`)
-      .then(r => r.json()).then(d => setIncome(Array.isArray(d) ? d : [])).catch(() => setIncome([]))
-    fetch(`${import.meta.env.VITE_API_URL}/api/assets`)
-      .then(r => r.json()).then(d => setAssets(Array.isArray(d) ? d : [])).catch(() => setAssets([]))
+    api('/api/expenses').then(d => setExpenses(Array.isArray(d) ? d : [])).catch(() => setExpenses([]))
+    api('/api/income').then(d => setIncome(Array.isArray(d) ? d : [])).catch(() => setIncome([]))
+    api('/api/assets').then(d => setAssets(Array.isArray(d) ? d : [])).catch(() => setAssets([]))
   }, [])
 
+  // Dates are 'YYYY-MM-DD' strings, so they compare correctly as strings
   const filterByPeriod = (items) => {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
     return items.filter(e => {
-      const d = new Date(e.date)
       switch (timePeriod) {
-        case 'today': return d >= today
-        case 'week': const w = new Date(today); w.setDate(w.getDate() - 7); return d >= w
-        case 'month': return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-        case 'year': return d.getFullYear() === now.getFullYear()
+        case 'today': return e.date >= todayStr
+        case 'week': return e.date >= localDateStr(weekAgo)
+        case 'month': return e.date.startsWith(todayStr.slice(0, 7))
+        case 'year': return e.date.startsWith(todayStr.slice(0, 4))
         default: return true
       }
     })
@@ -74,28 +100,31 @@ function App() {
   const filteredExpenses = filterByPeriod(expenses)
   const filteredIncome = filterByPeriod(income)
 
-  const totalSpent = filteredExpenses.reduce((s, e) => s + parseFloat(e.amount), 0)
-  const totalIncome = filteredIncome.reduce((s, i) => s + parseFloat(i.amount), 0)
+  const totalSpent = sumAmounts(filteredExpenses)
+  const totalIncome = sumAmounts(filteredIncome)
   const totalAssets = assets.reduce((s, a) => { const v = parseFloat(a.value); return s + (isNaN(v) ? 0 : v) }, 0)
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalSpent) / totalIncome * 100).toFixed(1) : 0
-  const netWorth = totalAssets + totalIncome - totalSpent
+  // Net worth is all-time, so it doesn't change with the selected period
+  const allTimeIncome = sumAmounts(income)
+  const allTimeSpent = sumAmounts(expenses)
+  const netWorth = totalAssets + allTimeIncome - allTimeSpent
 
   const headerDark = headerBg.type === 'photo' ||
     ['#000000','#0f172a','#1e3a5f','#14532d','#3b0764','#7f1d1d','#431407'].includes(headerBg.value) ||
     headerBg.type === 'gradient'
 
-  const showSuccess = (type) => { setSuccess(type); setTimeout(() => setSuccess(null), 2000) }
+  const showSuccess = (type, action) => { setSuccess({ type, action }); setTimeout(() => setSuccess(null), 2000) }
 
   const byCategory = {}
-    filteredExpenses.forEach(e => { 
-    byCategory[e.category] = (byCategory[e.category] || 0) + parseFloat(e.amount) 
+  filteredExpenses.forEach(e => {
+    byCategory[e.category] = (byCategory[e.category] || 0) + parseFloat(e.amount)
   })
 
   const recentActivity = [
     ...filteredExpenses.map(e => ({ ...e, _type: 'expense' })),
     ...filteredIncome.map(i => ({ ...i, _type: 'income' })),
-    ...assets.map(a => ({ ...a, date: a.created_at?.split('T')[0] || '', _type: 'asset' }))
-  ].filter(i => i.date).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10)
+    ...assets.map(a => ({ ...a, date: a.created_at ? localDateStr(new Date(a.created_at)) : '', _type: 'asset' }))
+  ].filter(i => i.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
 
   useEffect(() => {
     const greetingTimeout = setTimeout(() => {
@@ -104,7 +133,7 @@ function App() {
         setBannerIndex(1)
         setBannerVisible(true)
       }, 300)
-    }, 3000) 
+    }, 3000)
     return () => clearTimeout(greetingTimeout)
   }, [])
 
@@ -120,53 +149,68 @@ function App() {
     return () => clearInterval(interval)
   }, [bannerIndex])
 
+  const resetForms = () => {
+    setCategory(''); setAmount(''); setDescription(''); setDate(todayStr); setIsRecurring(false); setRecurringFrequency('monthly')
+    setIncomeSource(''); setIncomeAmount(''); setIncomeDescription(''); setIncomeDate(todayStr); setIncomeIsRecurring(false); setIncomeRecurringFrequency('monthly')
+    setAssetName(''); setAssetType('Cash'); setAssetValue('')
+  }
+
+  const openAddModal = () => {
+    setEditingItem(null)
+    resetForms()
+    setModalOpen(true)
+  }
+
+  // Always clear edit state on close so the next "+" adds instead of overwriting
+  const closeModal = () => {
+    setModalOpen(false)
+    setEditingItem(null)
+    resetForms()
+  }
+
+  const onSaved = (type, action) => { closeModal(); showSuccess(type, action) }
+  const onError = err => { console.error(err); alert(err.message) }
+
+  const expenseBody = () => JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
+  const incomeBody = () => JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
+  const assetBody = () => JSON.stringify({ name: assetName, type: assetType, value: parseFloat(assetValue) })
+
   const addExpense = () => {
     if (!category || !amount || !date) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
-    }).then(r => r.json()).then(d => {
-      setExpenses([{ ...d, amount: parseFloat(d.amount) }, ...expenses])
-      setCategory(''); setAmount(''); setDescription(''); setDate(todayStr); setIsRecurring(false)
-      setModalOpen(false); showSuccess('expense')
-    }).catch(err => console.error(err))
+    api('/api/expenses', { method: 'POST', body: expenseBody() }).then(d => {
+      setExpenses(prev => [d, ...prev])
+      onSaved('expense', 'added')
+    }).catch(onError)
   }
 
   const addIncome = () => {
     if (!incomeSource || !incomeAmount || !incomeDate) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/income`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
-    }).then(r => r.json()).then(d => {
-      setIncome([{ ...d, amount: parseFloat(d.amount) }, ...income])
-      setIncomeSource(''); setIncomeAmount(''); setIncomeDescription(''); setIncomeDate(todayStr); setIncomeIsRecurring(false)
-      setModalOpen(false); showSuccess('income')
-    }).catch(err => console.error(err))
+    api('/api/income', { method: 'POST', body: incomeBody() }).then(d => {
+      setIncome(prev => [d, ...prev])
+      onSaved('income', 'added')
+    }).catch(onError)
   }
 
   const addAsset = () => {
     if (!assetName || !assetValue) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/assets`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: assetName, type: assetType, value: parseFloat(assetValue) })
-    }).then(r => r.json()).then(d => {
-      setAssets([{ ...d, value: parseFloat(d.value) }, ...assets])
-      setAssetName(''); setAssetValue('')
-      setModalOpen(false); showSuccess('asset')
-    }).catch(err => console.error(err))
+    api('/api/assets', { method: 'POST', body: assetBody() }).then(d => {
+      setAssets(prev => [d, ...prev])
+      onSaved('asset', 'added')
+    }).catch(onError)
   }
 
-  // Handlers for deletion
-  const deleteExpense = id => fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${id}`, { method: 'DELETE' }).then(() => setExpenses(expenses.filter(e => e.id !== id)))
-  const deleteIncome = id => fetch(`${import.meta.env.VITE_API_URL}/api/income/${id}`, { method: 'DELETE' }).then(() => setIncome(income.filter(i => i.id !== id)))
-  const deleteAsset = id => fetch(`${import.meta.env.VITE_API_URL}/api/assets/${id}`, { method: 'DELETE' }).then(() => setAssets(assets.filter(a => a.id !== id)))
   const handleDelete = item => {
-    if (item._type === 'expense') deleteExpense(item.id)
-    else if (item._type === 'income') deleteIncome(item.id)
-    else deleteAsset(item.id)
+    const label = item._type === 'expense' ? item.category : item._type === 'income' ? item.source : item.name
+    if (!confirm(`Delete ${TYPE_LABELS[item._type].toLowerCase()} "${label}"?`)) return
+    const path = item._type === 'expense' ? 'expenses' : item._type === 'income' ? 'income' : 'assets'
+    const setter = item._type === 'expense' ? setExpenses : item._type === 'income' ? setIncome : setAssets
+    api(`/api/${path}/${item.id}`, { method: 'DELETE' })
+      .then(() => setter(prev => prev.filter(x => x.id !== item.id)))
+      .catch(onError)
   }
 
   const startEdit = (item) => {
+    resetForms()
     setEditingItem(item)
     if (item._type === 'expense') {
       setModalTab('expense')
@@ -182,7 +226,7 @@ function App() {
       setIncomeAmount(String(item.amount))
       setIncomeDescription(item.description || '')
       setIncomeDate(item.date)
-      setIncomeIsRecurring(item.is_recurring ||  false)
+      setIncomeIsRecurring(item.is_recurring || false)
       setIncomeRecurringFrequency(item.recurring_frequency || 'monthly')
     } else {
       setModalTab('asset')
@@ -195,35 +239,26 @@ function App() {
 
   const updateExpense = () => {
     if (!category || !amount || !date) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/expenses/${editingItem.id}`, {
-      method: 'PUT', header: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category, amount: parseFloat(amount), description, date, is_recurring: isRecurring, recurring_frequency: recurringFrequency })
-    }).then(r => r.json()).then(d => {
-      setExpenses(expenses.map(e => e.id === d.id ? {...d, amount: parseFloat(d.amount) } : e))
-      setEditingItem(null); setModalOpen(false); showSuccess('expense')
-    }).catch(err => console.error(err))
+    api(`/api/expenses/${editingItem.id}`, { method: 'PUT', body: expenseBody() }).then(d => {
+      setExpenses(prev => prev.map(e => e.id === d.id ? d : e))
+      onSaved('expense', 'updated')
+    }).catch(onError)
   }
 
   const updateIncome = () => {
     if (!incomeSource || !incomeAmount || !incomeDate) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/income/${editingItem.id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source: incomeSource, amount: parseFloat(incomeAmount), description: incomeDescription, date: incomeDate, is_recurring: incomeIsRecurring, recurring_frequency: incomeRecurringFrequency })
-    }).then(r => r.json()).then(d => {
-      setIncome(income.map(i => i.id === d.id ? { ...d, amount: parseFloat(d.amount) } : i))
-      setEditingItem(null); setModalOpen(false); showSuccess('income')
-    }).catch(err => console.error(err))
+    api(`/api/income/${editingItem.id}`, { method: 'PUT', body: incomeBody() }).then(d => {
+      setIncome(prev => prev.map(i => i.id === d.id ? d : i))
+      onSaved('income', 'updated')
+    }).catch(onError)
   }
 
   const updateAsset = () => {
     if (!assetName || !assetValue) return alert('Fill in required fields')
-    fetch(`${import.meta.env.VITE_API_URL}/api/income/${editingItem.id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json'},
-      body: JSON.stringify({ name: assetName, type: assetType, value: parseFloat(assetValue) })
-    }).then(r => r.json()).then(d => {
-      setAssets(assets.map(a => a.id === d.id ? { ...d, value: parseFloat(d.value) } : a))
-      setEditingItem(null); setModalOpen(false); showSuccess('asset')
-    }).catch(err => console.error(err))
+    api(`/api/assets/${editingItem.id}`, { method: 'PUT', body: assetBody() }).then(d => {
+      setAssets(prev => prev.map(a => a.id === d.id ? d : a))
+      onSaved('asset', 'updated')
+    }).catch(onError)
   }
 
   const getChartData = () => {
@@ -232,9 +267,9 @@ function App() {
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i)
       const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      const dateStr = d.toISOString().split('T')[0]
-      const spent = expenses.filter(e => e.date === dateStr).reduce((s, e) => s + parseFloat(e.amount), 0)
-      const earned = income.filter(i => i.date === dateStr).reduce((s, i) => s + parseFloat(i.amount), 0)
+      const dateStr = localDateStr(d)
+      const spent = sumAmounts(expenses.filter(e => e.date === dateStr))
+      const earned = sumAmounts(income.filter(i => i.date === dateStr))
       result.push({ label, spent, earned })
     }
     return result
@@ -265,7 +300,7 @@ function App() {
   const bannerMessages = [
     `${greeting}`,
     latestTransaction ? `Latest: ${latestTransaction._type === 'expense' ? '-' : '+'}$${parseFloat(latestTransaction._type === 'asset' ? latestTransaction.value : latestTransaction.amount).toFixed(2)} · ${latestTransaction._type === 'expense' ? latestTransaction.category : latestTransaction._type === 'income' ? latestTransaction.source : latestTransaction.name}` : `${greeting}`, 
-    `This month: $${totalSpent.toFixed(2)} spent`,
+    `${PERIOD_LABELS[timePeriod]}: $${totalSpent.toFixed(2)} spent`,
     `Savings rate: ${savingsRate}%`,
   ]
 
@@ -378,7 +413,7 @@ function App() {
               {Object.entries(byCategory).sort((a, b) => b[1] - a[1]).map(([name, value], i) => {
                 const colors = ['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899']
                 const color = colors[i % colors.length]
-                const pct = (value / totalSpent * 100).toFixed(0)
+                const pct = (totalSpent > 0 ? value / totalSpent * 100 : 0).toFixed(0)
                 return (
                   <div key={name}>
                     <div className="flex justify-between items-center mb-1">
@@ -470,7 +505,7 @@ function App() {
                 <p className={tw('text-3xl font-bold text-black mb-4', 'text-3xl font-bold text-white mb-4')}>${totalSpent.toFixed(2)}</p>
                 {Object.entries(byCategory).sort((a, b) => b[1] - a[1]).map(([name, value], i) => {
                   const colors = ['#3b82f6','#ef4444','#22c55e','#f97316','#a855f7','#ec4899']
-                  const pct = (value / totalSpent * 100).toFixed(0)
+                  const pct = (totalSpent > 0 ? value / totalSpent * 100 : 0).toFixed(0)
                   return (
                     <div key={name}>
                       <div className="flex justify-between mb-1">
@@ -494,7 +529,7 @@ function App() {
             {cardModal === 'income' && (
               <div className="space-y-3">
                 <p className={tw('text-3xl font-bold text-black mb-4', 'text-3xl font-bold text-white mb-4')}>${totalIncome.toFixed(2)}</p>
-                {filteredIncome.sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount)).map(i => (
+                {[...filteredIncome].sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount)).map(i => (
                   <div key={i.id} className={tw('flex justify-between items-center p-3 rounded-xl bg-gray-50', 'flex justify-between items-center p-3 rounded-xl bg-gray-800')}>
                     <div>
                       <p className={tw('text-sm font-semibold text-black', 'text-sm font-semibold text-white')}>{i.source}</p>
@@ -512,7 +547,7 @@ function App() {
               <div className="space-y-3">
                 <p className={tw('text-3xl font-bold text-black mb-4', 'text-3xl font-bold text-white mb-4')}>${totalAssets.toFixed(2)}</p>
                 {[...assets].sort((a, b) => parseFloat(b.value) - parseFloat(a.value)).map(a => {
-                  const pct = (parseFloat(a.value) / totalAssets * 100).toFixed(0)
+                  const pct = (totalAssets > 0 ? parseFloat(a.value) / totalAssets * 100 : 0).toFixed(0)
                   return (
                     <div key={a.id} className={tw('p-3 rounded-xl bg-gray-50', 'p-3 rounded-xl bg-gray-800')}>
                       <div className="flex justify-between mb-1">
@@ -571,12 +606,12 @@ function App() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          {success === 'expense' ? 'Expense added' : success === 'income' ? 'Income added' : 'Asset added'}
+          {TYPE_LABELS[success.type]} {success.action}
         </div>
       )}
 
       {/* ── Floating + Button ── */}
-      <button onClick={() => setModalOpen(true)}
+      <button onClick={openAddModal}
         className={tw(
           'fixed bottom-8 right-6 w-16 h-16 bg-black text-white rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40',
           'fixed bottom-8 right-6 w-16 h-16 bg-white text-black rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 hover:scale-105 z-40'
@@ -591,26 +626,29 @@ function App() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
           style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModalOpen(false) }}>
+          onClick={e => { if (e.target === e.currentTarget) closeModal() }}>
           <div className={tw('bg-white rounded-3xl w-full max-w-md p-6', 'bg-gray-900 rounded-3xl w-full max-w-md p-6')}
             style={{ maxHeight: '85vh', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>Add New</h2>
-              <button onClick={() => { setModalOpen(false); setEditingItem(null) }}
+              <h2 className={tw('text-lg font-bold text-black', 'text-lg font-bold text-white')}>{editingItem ? `Edit ${TYPE_LABELS[editingItem._type]}` : 'Add New'}</h2>
+              <button onClick={closeModal}
                 className={tw('w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200', 'w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-gray-700')}>✕</button>
             </div>
 
-            <div className={tw('flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl', 'flex gap-1 mb-5 bg-gray-800 p1 rounded-xl')}>
-              {['expense', 'income', 'asset'].map(tab => (
-                <button key={tab} onClick={() => setModalTab(tab)}
-                  className={tw(
-                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`,
-                    `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-gray-700 text-white' : 'text-gray-500'}`
-                  )}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
+            {/* Hidden while editing so an item can't be saved to the wrong endpoint */}
+            {!editingItem && (
+              <div className={tw('flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl', 'flex gap-1 mb-5 bg-gray-800 p-1 rounded-xl')}>
+                {['expense', 'income', 'asset'].map(tab => (
+                  <button key={tab} onClick={() => setModalTab(tab)}
+                    className={tw(
+                      `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`,
+                      `flex-1 py-2 rounded-lg text-sm font-semibold transition ${modalTab === tab ? 'bg-gray-700 text-white' : 'text-gray-500'}`
+                    )}>
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {modalTab === 'expense' && (
               <div className="flex flex-col gap-3">

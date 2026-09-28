@@ -88,10 +88,12 @@ Create a `.env` file:
 ```
 DATABASE_URL=your_supabase_connection_string
 PORT=3001
+# Optional: restrict CORS to your frontend (comma-separated). Defaults to allowing all origins.
+CLIENT_ORIGIN=http://localhost:5173
 ```
 
 ```bash
-node index.js
+npm start        # or: npm run dev (auto-reload with nodemon)
 ```
 
 ### Frontend
@@ -113,7 +115,7 @@ npm run dev
 ## Deployment
 
 - Frontend deployed on **Vercel** — connect your GitHub repo and set `VITE_API_URL` to your Railway backend URL
-- Backend deployed on **Railway** — set `DATABASE_URL` to your Supabase Session Pooler connection string
+- Backend deployed on **Railway** — set `DATABASE_URL` to your Supabase Session Pooler connection string and `CLIENT_ORIGIN` to your Vercel URL
 
 ## Project Structure
 
